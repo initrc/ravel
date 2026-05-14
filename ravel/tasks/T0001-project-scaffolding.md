@@ -12,6 +12,7 @@ dependencies: []
 - Generate `.ravel/config.json` with default values.
 - Copy the built-in `ravel-conventions.md` to `ravel/docs/ravel-conventions.md`.
 - Add `.ravel/` and `.worktrees/` entries to `.gitignore`.
+- Then call the AGENTS.md generator from T0009 (append Ravel section if AGENTS.md exists, write full template only if it doesn't).
 
 # Acceptance
 
@@ -49,9 +50,9 @@ type Config = z.infer<typeof ConfigSchema>;
 Ravel ships two template files inside the package (e.g., in a `templates/` directory at the package root):
 
 - `templates/ravel-conventions.md` — the conventions document copied to `ravel/docs/ravel-conventions.md`.
-- `templates/AGENTS.md` — the full AGENTS.md content (used by T0009).
+- `templates/AGENTS.md` — the full AGENTS.md content, used by T0009 only when no AGENTS.md exists yet. If an AGENTS.md already exists in the project root, T0009 appends just the Ravel Conventions section instead of overwriting.
 
-During `ravel init`, copy these templates to the project. Read them from `path.join(__dirname, "..", "templates", "<name>")` relative to the compiled CLI entry point.
+During `ravel init`, copy `ravel-conventions.md` to `ravel/docs/`. Read templates from `path.join(__dirname, "..", "templates", "<name>")` relative to the compiled CLI entry point.
 
 ## CLI entry point (Commander)
 
