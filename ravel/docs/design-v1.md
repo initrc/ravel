@@ -246,12 +246,19 @@ AGENTS.md
 
 with Ravel conventions.
 
-Example instructions:
+````md
+## Ravel Conventions
 
-- Design docs go in `ravel/docs/`
-- Tasks go in `ravel/tasks/`
-- Use required YAML frontmatter
-- Use valid task statuses
+Before creating or modifying any design docs or tasks, read:
+
+```txt
+ravel/docs/ravel-conventions.md
+```
+
+Follow those conventions strictly.
+````
+
+Ravel ships a built-in `ravel-conventions.md` that documents the task format, valid statuses, naming conventions, and blocked computation rules. During `ravel init`, this file is copied to `ravel/docs/ravel-conventions.md` so the AGENTS.md reference resolves correctly.
 
 If other commands are executed without initialization:
 

@@ -56,3 +56,13 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## Ravel Conventions
+
+Before creating or modifying any design docs or tasks, read:
+
+```txt
+ravel/docs/ravel-conventions.md
+```
+
+Follow those conventions strictly.
+
