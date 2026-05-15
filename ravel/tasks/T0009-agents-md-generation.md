@@ -1,7 +1,7 @@
 ---
 id: T0009
 title: AGENTS.md generation with Ravel conventions
-status: new
+status: done
 dependencies:
   - T0001
 ---

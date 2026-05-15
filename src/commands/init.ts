@@ -36,6 +36,51 @@ function ensureGitignore(cwd: string): void {
   );
 }
 
+function generateAgentsMd(cwd: string): void {
+  const agentsPath = path.join(cwd, "AGENTS.md");
+  const templateContent = fs.readFileSync(templatePath("AGENTS.md"), "utf-8");
+
+  // The ravel section is everything after the top-level heading (if present)
+  const ravelSection = templateContent.replace(/^# AGENTS\.md\n\n?/, "").trim();
+
+  if (!fs.existsSync(agentsPath)) {
+    fs.writeFileSync(agentsPath, templateContent.trim() + "\n", "utf-8");
+    return;
+  }
+
+  const existing = fs.readFileSync(agentsPath, "utf-8");
+  const headingRegex = /^## Ravel Conventions$/m;
+
+  if (headingRegex.test(existing)) {
+    // Replace existing section (from ## Ravel Conventions through next ## or EOF)
+    const idx = existing.search(headingRegex);
+    const before = existing.slice(0, idx);
+    const afterStart = idx + "## Ravel Conventions".length;
+    const rest = existing.slice(afterStart);
+    const nextHeading = rest.search(/^## /m);
+    const after = nextHeading === -1 ? "" : rest.slice(nextHeading);
+    const cleanedBefore = before.endsWith("\n\n")
+      ? before.trimEnd() + "\n\n"
+      : before.replace(/\n*$/, "\n\n");
+    fs.writeFileSync(
+      agentsPath,
+      cleanedBefore +
+        ravelSection +
+        "\n" +
+        (after ? "\n" + after.trimStart() : ""),
+      "utf-8",
+    );
+  } else {
+    // Append
+    const suffix = existing.endsWith("\n") ? "\n" : "\n\n";
+    fs.writeFileSync(
+      agentsPath,
+      existing + suffix + ravelSection + "\n",
+      "utf-8",
+    );
+  }
+}
+
 export function initCommand(cwd: string = process.cwd()): void {
   const configPath = path.join(cwd, ".ravel", "config.json");
 
@@ -68,9 +113,13 @@ export function initCommand(cwd: string = process.cwd()): void {
   // Add entries to .gitignore
   ensureGitignore(cwd);
 
+  // Generate/update AGENTS.md
+  generateAgentsMd(cwd);
+
   console.log("Ravel project initialized.");
   console.log("  Created: ravel/docs/, ravel/tasks/");
   console.log("  Created: .ravel/sessions/, .ravel/logs/");
   console.log("  Created: .ravel/config.json");
   console.log("  Updated: .gitignore");
+  console.log("  Updated: AGENTS.md");
 }
