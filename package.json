@@ -6,14 +6,17 @@
     "ravel": "./bin/ravel.js"
   },
   "scripts": {
-    "build": "tsc && mkdir -p bin && cp -r templates bin/"
+    "build": "tsc && mkdir -p bin && cp -r templates bin/",
+    "test": "vitest run"
   },
   "dependencies": {
     "commander": "^13.1.0",
+    "gray-matter": "^4.0.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.6"
   }
 }

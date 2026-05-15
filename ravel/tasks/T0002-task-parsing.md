@@ -1,7 +1,7 @@
 ---
 id: T0002
 title: Task file parsing and validation
-status: new
+status: done
 dependencies: []
 ---
 
