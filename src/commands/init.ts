@@ -2,9 +2,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { DEFAULT_CONFIG } from "../config.js";
 
-function templatePath(name: string): string {
-  return path.join(__dirname, "..", "templates", name);
+function templatePath(name: string, baseDir: string): string {
+  return path.join(baseDir, name);
 }
+
+const defaultTemplateDir = path.join(__dirname, "..", "templates");
 
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
@@ -36,9 +38,9 @@ function ensureGitignore(cwd: string): void {
   );
 }
 
-function generateAgentsMd(cwd: string): void {
+function generateAgentsMd(cwd: string, templatesDir: string): void {
   const agentsPath = path.join(cwd, "AGENTS.md");
-  const templateContent = fs.readFileSync(templatePath("AGENTS.md"), "utf-8");
+  const templateContent = fs.readFileSync(templatePath("AGENTS.md", templatesDir), "utf-8");
 
   // The ravel section is everything after the top-level heading (if present)
   const ravelSection = templateContent.replace(/^# AGENTS\.md\n\n?/, "").trim();
@@ -81,7 +83,8 @@ function generateAgentsMd(cwd: string): void {
   }
 }
 
-export function initCommand(cwd: string = process.cwd()): void {
+export function initCommand(cwd: string = process.cwd(), templateDir?: string): void {
+  const templatesDir = templateDir ?? defaultTemplateDir;
   const configPath = path.join(cwd, ".ravel", "config.json");
 
   if (fs.existsSync(configPath)) {
@@ -96,7 +99,7 @@ export function initCommand(cwd: string = process.cwd()): void {
   ensureDir(path.join(cwd, ".ravel", "logs"));
 
   // Copy ravel-conventions.md template (idempotent)
-  const conventionsSrc = templatePath("ravel-conventions.md");
+  const conventionsSrc = templatePath("ravel-conventions.md", templatesDir);
   const conventionsDest = path.join(
     cwd,
     "ravel",
@@ -114,7 +117,7 @@ export function initCommand(cwd: string = process.cwd()): void {
   ensureGitignore(cwd);
 
   // Generate/update AGENTS.md
-  generateAgentsMd(cwd);
+  generateAgentsMd(cwd, templatesDir);
 
   console.log("Ravel project initialized.");
   console.log("  Created: ravel/docs/, ravel/tasks/");
