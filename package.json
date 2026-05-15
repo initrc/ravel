@@ -1,0 +1,19 @@
+{
+  "name": "ravel",
+  "version": "0.1.0",
+  "description": "Orchestrator for interactive AI coding sessions",
+  "bin": {
+    "ravel": "./bin/ravel.js"
+  },
+  "scripts": {
+    "build": "tsc && mkdir -p bin && cp -r templates bin/"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}

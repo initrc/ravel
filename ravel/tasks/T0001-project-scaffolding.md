@@ -1,7 +1,7 @@
 ---
 id: T0001
 title: Project scaffolding and ravel init
-status: new
+status: done
 dependencies: []
 ---
 
@@ -66,7 +66,7 @@ const program = new Command();
 
 program
   .name("ravel")
-  .description("Local-first orchestration for interactive AI coding sessions")
+  .description("Orchestrator for interactive AI coding sessions")
   .version("0.1.0");
 
 program
