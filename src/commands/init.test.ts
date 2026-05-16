@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { initCommand } from "./init";
+import { fileURLToPath } from "node:url";
+import { initCommand } from "./init.js";
 
-const templatesDir = path.join(__dirname, "..", "..", "templates");
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
+const templatesDir = path.join(thisDir, "..", "..", "templates");
 
 describe("initCommand", () => {
   let tmpDir: string;

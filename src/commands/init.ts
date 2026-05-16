@@ -1,12 +1,15 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULT_CONFIG } from "../config.js";
+
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 function templatePath(name: string, baseDir: string): string {
   return path.join(baseDir, name);
 }
 
-const defaultTemplateDir = path.join(__dirname, "..", "templates");
+const defaultTemplateDir = path.join(thisDir, "..", "templates");
 
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });

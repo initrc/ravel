@@ -532,7 +532,7 @@ Users configure model selection inside the Builder harness.
 
 ## Language
 
-TypeScript
+TypeScript (ESM, `"type": "module"`)
 
 Reasons:
 

@@ -6,7 +6,7 @@ import {
   parseTask,
   TaskCollection,
   updateTaskStatus,
-} from "./task";
+} from "./task.js";
 
 // ---------------------------------------------------------------------------
 // parseFilename

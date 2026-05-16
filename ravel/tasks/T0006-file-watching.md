@@ -1,7 +1,7 @@
 ---
 id: T0006
 title: File watching system
-status: new
+status: done
 dependencies:
   - T0001
 ---

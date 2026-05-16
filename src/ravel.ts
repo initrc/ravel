@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
@@ -50,7 +51,7 @@ program
       const config = readConfig();
       const ravelCmd = isRavelOnPath()
         ? "ravel"
-        : `node '${path.join(__dirname, "ravel.js")}'`;
+        : `node '${path.join(path.dirname(fileURLToPath(import.meta.url)), "ravel.js")}'`;
       const worktreeAbs = path.resolve(process.cwd(), session.worktreePath);
       const command = generateLaunchCommand(
         session.taskId,
