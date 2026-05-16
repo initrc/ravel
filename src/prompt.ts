@@ -68,6 +68,7 @@ export async function promptForClipboard(
 
   if (config.copyPromptByDefault) {
     await writeClipboard(promptText);
+    console.log("Prompt copied to clipboard.");
     return;
   }
 
