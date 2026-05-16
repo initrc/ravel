@@ -65,4 +65,3 @@ ravel/docs/ravel-conventions.md
 ```
 
 Follow those conventions strictly.
-
