@@ -30,7 +30,7 @@ dependencies:
 - Integration is triggered by the file watcher (T0006) detecting a `task-status-changed` event to `done` in a worktree task file.
 - Rebase target: configurable, defaults to `main`.
 - Test command: configurable in `.ravel/config.json` (`testCommand` field).
-- Use execa for all git commands (`git fetch`, `git rebase`, `git push`, `git worktree remove`, `git branch`) and for running the test command. Reuse the same execa pattern from T0003 and T0005 — native git CLI, never simple-git.
+- Use `node:child_process` with `promisify(execFile)` for all git commands (`git fetch`, `git rebase`, `git push`, `git worktree remove`, `git branch`) and for running the test command. Reuse the same pattern from T0003 — native git CLI, never simple-git.
 
 ## Integration pipeline
 

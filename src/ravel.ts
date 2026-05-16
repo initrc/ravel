@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
+import { assignCommand, cleanupWorktree } from "./commands/assign.js";
 import { requireInit } from "./config.js";
 
 const program = new Command();
@@ -19,11 +20,31 @@ program
 
 program
   .command("assign <taskId>")
-  .description("Assign a task to a new Builder session")
-  .action((_taskId: string) => {
+  .description("Create a git worktree for a task")
+  .action(async (taskId: string) => {
     requireInit();
-    // T0005
-    console.log("assign command not yet implemented");
+    try {
+      const session = await assignCommand(taskId);
+      console.log(`Worktree created at ${session.worktreePath}`);
+      console.log(`Branch: ${session.branch}`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("cleanup <taskId>")
+  .description("Remove a task's worktree and branch")
+  .action(async (taskId: string) => {
+    requireInit();
+    try {
+      await cleanupWorktree(taskId);
+      console.log(`Cleaned up worktree and branch for ${taskId}`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
   });
 
 program

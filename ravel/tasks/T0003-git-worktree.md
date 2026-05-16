@@ -1,7 +1,7 @@
 ---
 id: T0003
 title: Git worktree and branch management
-status: new
+status: done
 dependencies:
   - T0001
   - T0002
@@ -25,7 +25,9 @@ dependencies:
 
 # Implementation Notes
 
-- **Use native git CLI** for worktree operations. Do NOT use simple-git for worktrees — its worktree support is unreliable. Use `execa` to run git commands. simple-git may still be used for simpler operations like `git branch`.
+- **Use native git CLI** for worktree operations. Do NOT use simple-git for worktrees — its worktree support is unreliable.
+- Use `node:child_process` with `promisify(execFile)` for running git commands. A single `git(args, cwd)` helper handles all interactions.
+  - `execa` was considered but rejected: it's pure ESM, while this project's `tsc` build outputs CJS. The ESM/CJS mismatch causes build failures (`require("execa")` is not allowed). `node:child_process` is built-in, works in both module systems, and the helper is one line.
 - Worktree base: use `HEAD` (the current branch tip) as the base ref. This means worktrees branch off wherever the user currently is.
 - Branch naming: strip `.md` from the task filename, e.g., `T0003-apply-shadcn-ui-primitives.md` → branch `T0003-apply-shadcn-ui-primitives`.
 

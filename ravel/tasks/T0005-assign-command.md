@@ -56,24 +56,12 @@ The assign flow is a linear pipeline. Each step aborts on failure with a clear m
 13. Launch Builder in worktree directory              → spawn error → warn, session remains valid
 ```
 
-## Process spawning
+## Builder command
 
-Use `execa` to launch the Builder. The Builder should open in a new terminal window so the user can interact with it:
+Ravel does not launch the Builder automatically. Instead, it puts the appropriate command in the clipboard so the user can open a new terminal tab and paste it.
 
-- **macOS**: `open -a Terminal <worktree-path>` or use the `open` command with the builder command wrapped in `osascript` to launch a new terminal.
-- Simpler cross-platform approach: launch the builder command directly with `execa` in the worktree directory, letting it inherit stdio. The user runs `ravel assign` in a separate terminal tab anyway.
-
-```ts
-import { execa } from "execa";
-
-// Launch builder in the worktree directory
-const subprocess = execa({
-  cwd: worktreePath,
-  stdio: "inherit",
-})`${config.builderCommand}`;
-```
-
-The subprocess inherits stdio so the user interacts with the Builder directly. When the Builder exits, control returns to the terminal where `ravel assign` was run.
+- Copy the builder command (e.g., `cd .worktrees/T0003 && claude`) to the clipboard.
+- Use `node:child_process` with `promisify(execFile)` for all git commands, same as T0003.
 
 ## Task status update
 
