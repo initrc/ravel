@@ -3,7 +3,8 @@ import * as path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { requireInit } from "../config.js";
-import { TaskCollection } from "../task.js";
+import { TaskCollection, updateTaskStatus } from "../task.js";
+import type { Task } from "../task.js";
 import { readSession, writeSession, deleteSession } from "../session.js";
 import type { Session } from "../session.js";
 
@@ -22,6 +23,11 @@ export function deriveBranchName(filename: string): string {
     throw new Error(`Expected .md filename, got: ${filename}`);
   }
   return filename.slice(0, -3);
+}
+
+export interface AssignResult {
+  session: Session;
+  task: Task;
 }
 
 async function branchExists(branch: string, cwd: string): Promise<boolean> {
@@ -49,7 +55,7 @@ async function worktreeExists(worktreePath: string, cwd: string): Promise<boolea
 export async function assignCommand(
   taskId: string,
   cwd: string = process.cwd(),
-): Promise<Session> {
+): Promise<AssignResult> {
   requireInit(cwd);
 
   const tasksDir = path.join(cwd, "ravel", "tasks");
@@ -58,6 +64,24 @@ export async function assignCommand(
   const task = collection.get(taskId);
   if (!task) {
     throw new Error(`Task ${taskId} not found in ravel/tasks/`);
+  }
+
+  if (task.status !== "new") {
+    throw new Error(`Task ${taskId} is already ${task.status}`);
+  }
+
+  const blocked = task.dependencies.filter((depId) => {
+    const dep = collection.get(depId);
+    return dep && dep.status !== "done";
+  });
+  if (blocked.length > 0) {
+    const labels = blocked
+      .map((id) => {
+        const dep = collection.get(id)!;
+        return `${dep.id} (${dep.status})`;
+      })
+      .join(", ");
+    throw new Error(`Task ${taskId} is blocked. Depends on: ${labels}`);
   }
 
   // Check 1: already assigned (session file exists)
@@ -88,17 +112,60 @@ export async function assignCommand(
   // Create branch from HEAD
   await git(["branch", branch, "HEAD"], cwd);
 
-  // Create worktree
-  await git(["worktree", "add", wtPath, branch], cwd);
+  // Create worktree; clean up branch on failure
+  try {
+    await git(["worktree", "add", wtPath, branch], cwd);
+  } catch (err) {
+    // Clean up the branch we just created
+    try {
+      await git(["branch", "-D", branch], cwd);
+    } catch {
+      // Branch cleanup failed; ignore.
+    }
+    throw err;
+  }
 
+  // Update task status; clean up branch + worktree on failure
+  try {
+    updateTaskStatus(task.filePath, "in-progress");
+  } catch (err) {
+    try {
+      await git(["worktree", "remove", "--force", wtPath], cwd);
+    } catch {
+      // Worktree cleanup failed; ignore.
+    }
+    try {
+      await git(["branch", "-D", branch], cwd);
+    } catch {
+      // Branch cleanup failed; ignore.
+    }
+    throw err;
+  }
+
+  // Write session; clean up branch + worktree on failure
   const session: Session = {
     taskId,
     branch,
     worktreePath: wtPath,
   };
 
-  writeSession(cwd, session);
-  return session;
+  try {
+    writeSession(cwd, session);
+  } catch (err) {
+    try {
+      await git(["worktree", "remove", "--force", wtPath], cwd);
+    } catch {
+      // Worktree cleanup failed; ignore.
+    }
+    try {
+      await git(["branch", "-D", branch], cwd);
+    } catch {
+      // Branch cleanup failed; ignore.
+    }
+    throw err;
+  }
+
+  return { session, task: { ...task, status: "in-progress" } };
 }
 
 export async function cleanupWorktree(

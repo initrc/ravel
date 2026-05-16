@@ -38,8 +38,7 @@ describe("initCommand", () => {
       const configPath = path.join(tmpDir, ".ravel", "config.json");
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
       expect(config.builderCommand).toBe("claude");
-      expect(config.copyAssignCommandByDefault).toBe(false);
-      expect(config.copyPromptByDefault).toBe(false);
+      expect(config.copyCommandByDefault).toBe(false);
       expect(config.maxConcurrentBuilders).toBe(2);
     });
   });
@@ -95,8 +94,7 @@ describe("initCommand", () => {
         configPath,
         JSON.stringify({
           builderCommand: "claude",
-          copyAssignCommandByDefault: false,
-          copyPromptByDefault: false,
+          copyCommandByDefault: false,
           maxConcurrentBuilders: 4,
         }),
       );

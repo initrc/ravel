@@ -1,11 +1,26 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import * as path from "node:path";
+import { execFileSync } from "node:child_process";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
-import { requireInit } from "./config.js";
+import { requireInit, readConfig } from "./config.js";
 import { TaskCollection } from "./task.js";
-import { generatePrompt, promptForClipboard } from "./prompt.js";
+import {
+  generatePrompt,
+  promptForClipboard,
+  generateLaunchCommand,
+  commandForClipboard,
+} from "./prompt.js";
+
+function isRavelOnPath(): boolean {
+  try {
+    execFileSync("ravel", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const program = new Command();
 
@@ -23,13 +38,34 @@ program
 
 program
   .command("assign <taskId>")
-  .description("Create a git worktree for a task")
+  .description("Create a git worktree for a task and launch the builder")
   .action(async (taskId: string) => {
     requireInit();
     try {
-      const session = await assignCommand(taskId);
+      const { session } = await assignCommand(taskId);
+
       console.log(`Worktree created at ${session.worktreePath}`);
       console.log(`Branch: ${session.branch}`);
+
+      const config = readConfig();
+      const ravelCmd = isRavelOnPath()
+        ? "ravel"
+        : `node '${path.join(__dirname, "ravel.js")}'`;
+      const worktreeAbs = path.resolve(process.cwd(), session.worktreePath);
+      const command = generateLaunchCommand(
+        session.taskId,
+        ravelCmd,
+        worktreeAbs,
+        config.builderCommand,
+      );
+
+      console.log(
+        "\nRun this command in a new terminal or tab.\n" +
+          "When your coding agent launches, a prepared prompt will be in your clipboard.\n" +
+          "Paste it there.\n",
+      );
+      console.log(`${command}`);
+      await commandForClipboard(command);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
@@ -53,7 +89,8 @@ program
 program
   .command("prompt <taskId>")
   .description("Generate a builder prompt for a task")
-  .action(async (taskId: string) => {
+  .option("--copy", "Copy to clipboard without the interactive menu")
+  .action(async (taskId: string, options: { copy?: boolean }) => {
     requireInit();
     try {
       const tasksDir = path.join(process.cwd(), "ravel", "tasks");
@@ -64,7 +101,7 @@ program
       }
       const prompt = generatePrompt(task);
       console.log(prompt);
-      await promptForClipboard(prompt);
+      await promptForClipboard(prompt, options.copy ?? false);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

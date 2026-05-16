@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generatePrompt } from "./prompt";
+import { generatePrompt, generateLaunchCommand } from "./prompt";
 import type { Task } from "./task";
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -69,5 +69,37 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("ravel/tasks/T0015-flux-capacitor.md");
     expect(prompt).toContain("T0015: Fix the flux capacitor");
   });
+});
 
+// ---------------------------------------------------------------------------
+// generateLaunchCommand
+// ---------------------------------------------------------------------------
+describe("generateLaunchCommand", () => {
+  it("produces ravel prompt --copy && cd && builder pipeline", () => {
+    const cmd = generateLaunchCommand(
+      "T0003",
+      "ravel",
+      "/home/user/project/.worktrees/T0003",
+      "claude",
+    );
+    expect(cmd).toBe(
+      "ravel prompt T0003 --copy" +
+        " && cd '/home/user/project/.worktrees/T0003'" +
+        " && claude",
+    );
+  });
+
+  it("supports a node path as the ravel command", () => {
+    const cmd = generateLaunchCommand(
+      "T0005",
+      "node '/path/to/bin/ravel.js'",
+      "/tmp/worktrees/T0005",
+      "codex",
+    );
+    expect(cmd).toBe(
+      "node '/path/to/bin/ravel.js' prompt T0005 --copy" +
+        " && cd '/tmp/worktrees/T0005'" +
+        " && codex",
+    );
+  });
 });

@@ -1,7 +1,7 @@
 ---
 id: T0005
 title: ravel assign command
-status: new
+status: done
 dependencies:
   - T0002
   - T0003
@@ -17,8 +17,8 @@ dependencies:
 - Create git branch and worktree (T0003).
 - Update task status to `in-progress`.
 - Generate Builder prompt (T0004).
-- Optionally copy prompt to clipboard.
-- Launch the configured Builder command.
+- Generate a launch command that cd's to the worktree, copies the prompt to clipboard via `ravel prompt --copy`, and launches the Builder.
+- Optionally copy the launch command to clipboard.
 - Register the runtime session.
 
 # Acceptance
@@ -52,15 +52,24 @@ The assign flow is a linear pipeline. Each step aborts on failure with a clear m
 9. Update task status to "in-progress"                → fs error → abort, clean up branch + worktree
 10. Write session file                                → fs error → abort, clean up branch + worktree
 11. Generate and print Builder prompt                 → (never fails)
-12. Present clipboard menu                            → (never fails)
-13. Launch Builder in worktree directory              → spawn error → warn, session remains valid
+12. Generate launch command (cd + ravel prompt + builder) → (never fails)
+13. Present clipboard menu for the launch command     → (never fails)
 ```
 
-## Builder command
+## Launch command
 
-Ravel does not launch the Builder automatically. Instead, it puts the appropriate command in the clipboard so the user can open a new terminal tab and paste it.
+Ravel does not launch the Builder automatically. Instead, it generates a launch command and optionally copies it to clipboard so the user can paste it in a new terminal tab.
 
-- Copy the builder command (e.g., `cd .worktrees/T0003 && claude`) to the clipboard.
+The launch command is a pipeline:
+
+```
+ravel prompt T0003 --copy && cd .worktrees/T0003 && claude
+```
+
+`ravel prompt --copy` prints the prompt and copies it to clipboard without showing an interactive menu. When the Builder launches, the prompt is already in clipboard — the user just pastes it.
+
+If `ravel` is not on PATH, the absolute path to `ravel.js` is used instead.
+
 - Use `node:child_process` with `promisify(execFile)` for all git commands, same as T0003.
 
 ## Task status update
@@ -69,4 +78,4 @@ Use the `updateTaskStatus` function from T0002 to modify the task file *in the m
 
 ## Config key
 
-The config key for assignment preference is `copyAssignCommandByDefault`, distinct from `copyPromptByDefault`. When both are `true`, both the assign command text and the builder prompt are copied to clipboard during assignment.
+The config key `copyCommandByDefault` controls whether the launch command is copied to clipboard automatically (no menu) or the user is prompted with an interactive menu.

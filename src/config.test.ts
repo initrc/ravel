@@ -7,13 +7,11 @@ describe("ConfigSchema", () => {
   it("parses a full valid config", () => {
     const result = ConfigSchema.parse({
       builderCommand: "codex",
-      copyAssignCommandByDefault: true,
-      copyPromptByDefault: true,
+      copyCommandByDefault: true,
       maxConcurrentBuilders: 4,
     });
     expect(result.builderCommand).toBe("codex");
-    expect(result.copyAssignCommandByDefault).toBe(true);
-    expect(result.copyPromptByDefault).toBe(true);
+    expect(result.copyCommandByDefault).toBe(true);
     expect(result.maxConcurrentBuilders).toBe(4);
   });
 
@@ -26,8 +24,7 @@ describe("ConfigSchema", () => {
     const result = ConfigSchema.parse({ maxConcurrentBuilders: 8 });
     expect(result.maxConcurrentBuilders).toBe(8);
     expect(result.builderCommand).toBe("claude");
-    expect(result.copyAssignCommandByDefault).toBe(false);
-    expect(result.copyPromptByDefault).toBe(false);
+    expect(result.copyCommandByDefault).toBe(false);
   });
 
   it("rejects non-integer maxConcurrentBuilders", () => {
@@ -47,7 +44,7 @@ describe("ConfigSchema", () => {
   });
 
   it("rejects a non-boolean flag", () => {
-    expect(() => ConfigSchema.parse({ copyAssignCommandByDefault: "yes" })).toThrow();
+    expect(() => ConfigSchema.parse({ copyCommandByDefault: "yes" })).toThrow();
   });
 });
 
@@ -59,8 +56,7 @@ describe("DEFAULT_CONFIG", () => {
   it("has the expected defaults", () => {
     expect(DEFAULT_CONFIG).toEqual({
       builderCommand: "claude",
-      copyAssignCommandByDefault: false,
-      copyPromptByDefault: false,
+      copyCommandByDefault: false,
       maxConcurrentBuilders: 2,
     });
   });

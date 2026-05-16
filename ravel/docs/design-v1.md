@@ -330,8 +330,8 @@ Responsibilities:
 5. Create git worktree
 6. Update task status to `in-progress`
 7. Generate Builder prompt
-8. Optionally copy prompt to clipboard
-9. Launch Builder command
+8. Generate launch command (cd + ravel prompt --copy + builder)
+9. Optionally copy launch command to clipboard
 10. Register runtime session
 
 ### Branch Naming
@@ -368,19 +368,28 @@ Location:
 
 ---
 
-# Builder Prompt
+# Launch Command
 
-Ravel generates a prompt and optionally copies it to clipboard.
+`ravel assign` generates a launch command and optionally copies it to clipboard. The user pastes it in a new terminal to begin working.
 
-Clipboard behavior:
+Launch command format:
 
-```txt
-1. Copy
-2. Always copy
-Esc. Do not copy
+```
+ravel prompt T0003 --copy && cd .worktrees/T0003 && claude
 ```
 
-Prompt template:
+Three parts:
+1. `ravel prompt T0003 --copy` — prints the builder prompt and copies it to clipboard (no interactive menu)
+2. `cd .worktrees/T0003` — navigates to the worktree
+3. `claude` — launches the configured Builder
+
+When the Builder launches, the prompt is already in clipboard — the user just pastes it.
+
+If `ravel` is not on PATH, the absolute path to `ravel.js` is used instead.
+
+## Builder Prompt
+
+The prompt is generated from this template:
 
 ```txt
 You are working in a git worktree for task T0003.
@@ -401,7 +410,19 @@ If I later say LGTM:
 Do not push, merge, rebase, or delete branches.
 ```
 
-Replace the task file and git commit message in the template with the task being worked on.
+The task file path and git commit message are interpolated from the assigned task.
+
+## Clipboard
+
+The interactive `ravel prompt` command shows a clipboard menu:
+
+```txt
+1. Copy
+2. Always copy
+Esc. Do not copy
+```
+
+Option 2 sets `copyCommandByDefault` to `true` in `.ravel/config.json`, skipping the menu on future assignments. The `--copy` flag skips the menu entirely for non-interactive use in the launch command.
 
 ---
 
@@ -496,8 +517,7 @@ Example:
 ```json
 {
   "builderCommand": "claude",
-  "copyAssignCommandByDefault": false,
-  "copyPromptByDefault": false,
+  "copyCommandByDefault": false,
   "maxConcurrentBuilders": 2
 }
 ```

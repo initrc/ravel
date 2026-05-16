@@ -77,3 +77,11 @@ Run these from the project root:
 | `npm run lint` | Check for lint errors (`eslint .`) |
 | `npm run lint:fix` | Auto-fix lint errors where possible |
 | `node bin/ravel.js <command>` | Run the Ravel CLI from the build output |
+
+When the implementation is done, always run:
+
+```
+npm run lint && npm test
+```
+
+Lint catches issues that compilation misses. Tests catch regressions beyond the files you touched.

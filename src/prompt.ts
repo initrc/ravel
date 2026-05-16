@@ -60,19 +60,31 @@ async function waitForKeypress(): Promise<string> {
   });
 }
 
+export function generateLaunchCommand(
+  taskId: string,
+  ravelCmd: string,
+  worktreePath: string,
+  builderCommand: string,
+): string {
+  return (
+    `${ravelCmd} prompt ${taskId} --copy` +
+    ` && cd '${worktreePath}'` +
+    ` && ${builderCommand}`
+  );
+}
+
 export async function promptForClipboard(
   promptText: string,
-  cwd: string = process.cwd(),
+  copy = false,
 ): Promise<void> {
-  const config = readConfig(cwd);
-
-  if (config.copyPromptByDefault) {
+  if (copy) {
     await writeClipboard(promptText);
-    console.log("Prompt copied to clipboard.");
     return;
   }
 
-  console.log("\nPrompt copied? [1. Copy / 2. Always copy / Esc. Do not copy]");
+  console.log(
+    "\nCopy prompt? [1. Copy / 2. Always copy / Esc. Do not copy]",
+  );
 
   const choice = await waitForKeypress();
 
@@ -81,9 +93,37 @@ export async function promptForClipboard(
     console.log("Copied!");
   } else if (choice === "2") {
     await writeClipboard(promptText);
-    config.copyPromptByDefault = true;
+    console.log("Copied!");
+  } else {
+    console.log("Not copied.");
+  }
+}
+
+export async function commandForClipboard(
+  commandText: string,
+  cwd: string = process.cwd(),
+): Promise<void> {
+  const config = readConfig(cwd);
+
+  if (config.copyCommandByDefault) {
+    await writeClipboard(commandText);
+    return;
+  }
+
+  console.log(
+    "\nCopy command? [1. Copy / 2. Always copy / Esc. Do not copy]",
+  );
+
+  const choice = await waitForKeypress();
+
+  if (choice === "1") {
+    await writeClipboard(commandText);
+    console.log("Copied!");
+  } else if (choice === "2") {
+    await writeClipboard(commandText);
+    config.copyCommandByDefault = true;
     writeConfig(cwd, config);
-    console.log("Copied! Copy-on-prompt set as default.");
+    console.log("Copied! Copy-on-default set.");
   } else {
     console.log("Not copied.");
   }

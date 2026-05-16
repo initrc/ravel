@@ -4,8 +4,7 @@ import { z } from "zod";
 
 export const ConfigSchema = z.object({
   builderCommand: z.string().default("claude"),
-  copyAssignCommandByDefault: z.boolean().default(false),
-  copyPromptByDefault: z.boolean().default(false),
+  copyCommandByDefault: z.boolean().default(false),
   maxConcurrentBuilders: z.number().int().min(1).default(2),
 });
 
@@ -13,8 +12,7 @@ export type Config = z.infer<typeof ConfigSchema>;
 
 export const DEFAULT_CONFIG: Config = {
   builderCommand: "claude",
-  copyAssignCommandByDefault: false,
-  copyPromptByDefault: false,
+  copyCommandByDefault: false,
   maxConcurrentBuilders: 2,
 };
 
