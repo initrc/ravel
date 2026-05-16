@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import * as path from "node:path";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
 import { requireInit } from "./config.js";
+import { TaskCollection } from "./task.js";
+import { generatePrompt, promptForClipboard } from "./prompt.js";
 
 const program = new Command();
 
@@ -41,6 +44,27 @@ program
     try {
       await cleanupWorktree(taskId);
       console.log(`Cleaned up worktree and branch for ${taskId}`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("prompt <taskId>")
+  .description("Generate a builder prompt for a task")
+  .action(async (taskId: string) => {
+    requireInit();
+    try {
+      const tasksDir = path.join(process.cwd(), "ravel", "tasks");
+      const collection = TaskCollection.load(tasksDir);
+      const task = collection.get(taskId);
+      if (!task) {
+        throw new Error(`Task ${taskId} not found`);
+      }
+      const prompt = generatePrompt(task);
+      console.log(prompt);
+      await promptForClipboard(prompt);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

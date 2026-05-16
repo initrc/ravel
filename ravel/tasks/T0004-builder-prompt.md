@@ -1,7 +1,7 @@
 ---
 id: T0004
 title: Builder prompt generation and clipboard
-status: new
+status: done
 dependencies:
   - T0002
 ---

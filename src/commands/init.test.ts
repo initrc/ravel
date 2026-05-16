@@ -12,7 +12,7 @@ describe("initCommand", () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join("/tmp", "ravel-test-"));
     consoleLog = vi.fn();
-    vi.spyOn(console, "log").mockImplementation(consoleLog);
+    vi.spyOn(console, "log").mockImplementation(consoleLog as unknown as (...args: unknown[]) => void);
   });
 
   afterEach(() => {
