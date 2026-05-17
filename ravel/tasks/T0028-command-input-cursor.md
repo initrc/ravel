@@ -1,7 +1,7 @@
 ---
 id: T0028
 title: Add cursor to command input in TUI
-status: new
+status: done
 dependencies: []
 ---
 

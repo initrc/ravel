@@ -82,7 +82,7 @@ export function CommandInput({ output, onCommand }: CommandInputProps) {
           {'> '}
         </Text>
         {input ? (
-          <Text>{input}</Text>
+          <Text>{input}█</Text>
         ) : (
           <Text dimColor>/ commands  ↑↓ scroll event log  PgUp/PgDn page</Text>
         )}
