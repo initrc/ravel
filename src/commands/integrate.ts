@@ -26,6 +26,11 @@ async function hasRemote(cwd: string): Promise<boolean> {
   }
 }
 
+async function hasUncommittedChanges(cwd: string): Promise<boolean> {
+  const out = await git(["status", "--porcelain"], cwd);
+  return out.trim().length > 0;
+}
+
 export async function runIntegration(
   taskId: string,
   projectRoot: string,
@@ -43,32 +48,30 @@ export async function runIntegration(
   const taskFilePath = path.join(projectRoot, "ravel", "tasks", `${branch}.md`);
   const originExists = await hasRemote(worktreeDir);
 
-  // 1. Fetch the latest main branch.
-  //    Uses the remote-tracking ref when a remote exists; otherwise rebases
-  //    directly onto the local main branch.
-  const rebaseTarget = originExists ? `origin/${mainBranch}` : mainBranch;
-
-  if (originExists) {
+  // 1. Stash uncommitted changes on main so they don't interfere with the rebase.
+  const dirty = await hasUncommittedChanges(projectRoot);
+  if (dirty) {
     onEvent({
       type: "progress",
       taskId,
-      message: `Fetching ${rebaseTarget}...`,
+      message: `Stashing uncommitted changes on ${mainBranch}...`,
     });
-    try {
-      await git(["fetch", "origin", mainBranch], worktreeDir);
-    } catch (err) {
-      throw new Error(`git fetch origin ${mainBranch} failed: ${(err as Error).message}`);
-    }
+    await git(["stash", "push", "--include-untracked"], projectRoot);
+    onEvent({
+      type: "progress",
+      taskId,
+      message: "Stashed uncommitted changes",
+    });
   }
 
-  // 2. Rebase onto the target.
+  // 2. Rebase onto the local main branch.
   onEvent({
     type: "progress",
     taskId,
-    message: `Rebasing onto ${rebaseTarget}...`,
+    message: `Rebasing onto ${mainBranch}...`,
   });
   try {
-    await git(["rebase", rebaseTarget], worktreeDir);
+    await git(["rebase", mainBranch], worktreeDir);
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? "";
     const message = (err as Error).message;
@@ -84,6 +87,14 @@ export async function runIntegration(
         // Best-effort abort; ignore failure.
       }
 
+      if (dirty) {
+        onEvent({
+          type: "progress",
+          taskId,
+          message: "Uncommitted changes are stashed. Run 'git stash pop' to restore them after resolving the conflict.",
+        });
+      }
+
       onEvent({
         type: "conflict",
         taskId,
@@ -92,7 +103,8 @@ export async function runIntegration(
       return;
     }
 
-    throw new Error(`git rebase ${rebaseTarget} failed: ${message}`);
+    // Non-conflict error.
+    throw new Error(`git rebase ${mainBranch} failed: ${message}`);
   }
 
   // 3. Run test command (skipped when empty).
@@ -110,6 +122,14 @@ export async function runIntegration(
       const stderr = (err as { stderr?: string }).stderr ?? "";
       const stdout = (err as { stdout?: string }).stdout ?? "";
       const output = stdout + stderr;
+
+      if (dirty) {
+        onEvent({
+          type: "progress",
+          taskId,
+          message: "Uncommitted changes are stashed. Run 'git stash pop' to restore them after fixing the tests.",
+        });
+      }
 
       onEvent({
         type: "test-failure",
@@ -142,7 +162,25 @@ export async function runIntegration(
     onEvent({ type: "progress", taskId, message: "Pushed" });
   }
 
-  // 5. Clean up worktree and branch.
+  // 5. Restore stashed changes.
+  if (dirty) {
+    try {
+      await git(["stash", "pop"], projectRoot);
+      onEvent({
+        type: "progress",
+        taskId,
+        message: "Restored stashed changes",
+      });
+    } catch (popErr) {
+      onEvent({
+        type: "error",
+        taskId,
+        message: `Failed to restore stashed changes: ${(popErr as Error).message}. Your changes are still in the stash.`,
+      });
+    }
+  }
+
+  // 6. Clean up worktree and branch.
   onEvent({
     type: "progress",
     taskId,
@@ -161,35 +199,14 @@ export async function runIntegration(
     // Branch may already be deleted; ignore.
   }
 
-  // 6. Delete session file.
+  // 7. Delete session file.
   deleteSession(projectRoot, taskId);
 
-  // 7. Update task status to done on the main repo.
+  // 8. Update task status to done on the main repo.
   try {
     updateTaskStatus(taskFilePath, "done");
   } catch {
     // The task file may have already been updated by the rebase; non-fatal.
-  }
-
-  // 8. Sync local main branch with remote so the user's working directory
-  //    doesn't fall behind the just-pushed integration.
-  if (originExists) {
-    onEvent({
-      type: "progress",
-      taskId,
-      message: `Pulling latest ${mainBranch}...`,
-    });
-    try {
-      await git(["pull", "--ff-only", "origin", mainBranch], projectRoot);
-      onEvent({
-        type: "progress",
-        taskId,
-        message: `Local ${mainBranch} is up to date`,
-      });
-    } catch {
-      // Non-fatal: user may be on a different branch, have local commits,
-      // or the remote might not have the changes merged yet.
-    }
   }
 
   onEvent({ type: "complete", taskId });

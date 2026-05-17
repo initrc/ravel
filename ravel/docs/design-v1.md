@@ -488,21 +488,25 @@ status: done
 
 Ravel performs:
 
-1. Fetch latest main branch (remote-tracking ref `origin/main` when a remote exists; otherwise local `main`)
-2. Rebase worktree branch onto the fetched target
-3. Run tests (configurable `testCommand`; skipped when empty)
-4. Push rebased branch to remote (skipped when `pushOnIntegration` is false or no remote exists)
-5. Clean up worktree and branch
-6. Remove session file
-7. Update task status to `done` on the main branch (so dependent tasks become assignable)
-8. Sync local main branch via `git pull --ff-only` to keep the working directory up to date
+1. Stash uncommitted changes on the main branch (if any), so they don't interfere with the rebase. Logged.
+2. Rebase the worktree branch onto the local `main` branch.
+3. Run tests (configurable `testCommand`; skipped when empty).
+4. Push rebased branch to remote (skipped when `pushOnIntegration` is false or no remote exists).
+5. Restore stashed changes via `git stash pop`. Logged. On failure (conflict, test failure, error), the stash is NOT popped — the user is told to pop it manually once the issue is resolved.
+6. Clean up worktree and branch.
+7. Remove session file.
+8. Update task status to `done` on the main branch (so dependent tasks become assignable).
+
+### Rebase target
+
+Ravel always rebases onto the local `main` branch. It never fetches `origin/main`. This keeps integration local-first and avoids triggering remote PR prompts.
 
 ### Remote vs local-only repos
 
 Ravel works with or without a git remote:
 
-- **Remote exists**: fetches `origin/main`, rebases onto `origin/main`, pushes the task branch.
-- **No remote**: skips fetch and push, rebases directly onto the local `main` branch.
+- **Remote exists**: pushes the task branch when `pushOnIntegration` is true.
+- **No remote**: skips push entirely.
 
 ### Rebase Conflicts
 

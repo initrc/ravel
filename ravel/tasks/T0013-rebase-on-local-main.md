@@ -1,7 +1,7 @@
 ---
 id: T0013
 title: Rebase on local main instead of origin/main during integration
-status: new
+status: done
 dependencies: []
 ---
 
