@@ -485,6 +485,32 @@ describe("runIntegration", () => {
       }
     });
 
-    it.todo("throws after timeout when worktree never becomes clean");
+    it("throws after timeout when worktree never becomes clean", async () => {
+      setupConfig({ testCommand: "" });
+
+      vi.useFakeTimers();
+      try {
+        mocks.mockGit.mockImplementation((args: string[], cwd: string) => {
+          if (args[0] === "status" && args[1] === "--porcelain") {
+            if (cwd === projectRoot) return "";
+            return " M file.txt"; // worktree never becomes clean
+          }
+          return gitSuccess(args);
+        });
+
+        const { callback } = collectEvents();
+        const promise = runIntegration(taskId, projectRoot, callback);
+        promise.catch(() => {}); // suppress unhandled rejection during fake timer advance
+
+        await vi.advanceTimersByTimeAsync(300_001);
+
+        await expect(promise).rejects.toThrow(
+          "Timed out waiting for commit to land on feature branch. " +
+            "The worktree still has uncommitted changes after 300s.",
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

@@ -1,7 +1,7 @@
 ---
 id: T0026
 title: Increase integration timeout to 300s
-status: new
+status: done
 dependencies: []
 ---
 

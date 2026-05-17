@@ -63,8 +63,8 @@ export async function runIntegration(
       taskId,
       message: "Waiting for commit to land on feature branch...",
     });
-    const timeoutMs = 15_000;
-    const intervalMs = 500;
+    const timeoutMs = 300_000;
+    const intervalMs = 2000;
     const start = Date.now();
     while (await hasUncommittedChanges(worktreeDir)) {
       if (Date.now() - start >= timeoutMs) {
