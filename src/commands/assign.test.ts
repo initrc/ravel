@@ -84,7 +84,15 @@ describe("assignCommand", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function writeTask(
+  async function commitAll(message: string): Promise<void> {
+    await git(["add", "-A"], tmpDir);
+    await git(
+      ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", message],
+      tmpDir,
+    );
+  }
+
+  async function writeTask(
     id: string,
     slug: string,
     overrides: Partial<{
@@ -92,7 +100,7 @@ describe("assignCommand", () => {
       status: string;
       dependencies: string[];
     }> = {},
-  ): string {
+  ): Promise<string> {
     const filename = `${id}-${slug}.md`;
     const fm: Record<string, unknown> = {
       id,
@@ -105,12 +113,15 @@ describe("assignCommand", () => {
       .join("\n");
     const filePath = path.join(tasksDir, filename);
     fs.writeFileSync(filePath, `---\n${yaml}\n---\nBody for ${id}`);
+    // Commit so the file is included in worktree checkouts.
+    // In production, task files are always committed on main.
+    await commitAll(`add ${filename}`);
     return filePath;
   }
 
   describe("successful assignment", () => {
     it("creates branch, worktree, and session file", async () => {
-      writeTask("T0010", "git-worktree");
+      await writeTask("T0010", "git-worktree");
       const result = await assignCommand("T0010", tmpDir);
 
       // Verify session data
@@ -138,16 +149,25 @@ describe("assignCommand", () => {
       expect(sess).toEqual(result.session);
     });
 
-    it("updates task status to in-progress", async () => {
-      const filePath = writeTask("T0011", "setup");
+    it("updates task status to in-progress in the worktree", async () => {
+      await writeTask("T0011", "setup");
       await assignCommand("T0011", tmpDir);
 
-      const content = fs.readFileSync(filePath, "utf-8");
+      // Status is written to the worktree copy, not the main repo
+      const wtFilePath = path.join(
+        tmpDir,
+        ".worktrees",
+        "T0011",
+        "ravel",
+        "tasks",
+        "T0011-setup.md",
+      );
+      const content = fs.readFileSync(wtFilePath, "utf-8");
       expect(content).toContain("status: in-progress");
     });
 
     it("worktree is created at .worktrees/<taskId>/", async () => {
-      writeTask("T0012", "setup");
+      await writeTask("T0012", "setup");
       const result = await assignCommand("T0012", tmpDir);
 
       expect(result.session.worktreePath).toBe(".worktrees/T0012");
@@ -157,7 +177,7 @@ describe("assignCommand", () => {
     });
 
     it("branch name is derived from task filename", async () => {
-      writeTask("T0013", "complex-feature-name");
+      await writeTask("T0013", "complex-feature-name");
       const result = await assignCommand("T0013", tmpDir);
 
       expect(result.session.branch).toBe("T0013-complex-feature-name");
@@ -174,21 +194,21 @@ describe("assignCommand", () => {
 
   describe("status validation", () => {
     it("rejects assignment when task is already in-progress", async () => {
-      writeTask("T0020", "git-worktree", { status: "in-progress" });
+      await writeTask("T0020", "git-worktree", { status: "in-progress" });
       await expect(assignCommand("T0020", tmpDir)).rejects.toThrow(
         "already in-progress",
       );
     });
 
     it("rejects assignment when task is already done", async () => {
-      writeTask("T0021", "git-worktree", { status: "done" });
+      await writeTask("T0021", "git-worktree", { status: "done" });
       await expect(assignCommand("T0021", tmpDir)).rejects.toThrow(
         "already done",
       );
     });
 
     it("rejects assignment when task is in review", async () => {
-      writeTask("T0022", "git-worktree", { status: "review" });
+      await writeTask("T0022", "git-worktree", { status: "review" });
       await expect(assignCommand("T0022", tmpDir)).rejects.toThrow(
         "already review",
       );
@@ -197,11 +217,11 @@ describe("assignCommand", () => {
 
   describe("dependency validation", () => {
     it("rejects assignment when a dependency is not done", async () => {
-      writeTask("T0030", "target", {
+      await writeTask("T0030", "target", {
         dependencies: ["T0031", "T0032"],
       });
-      writeTask("T0031", "dep-one", { status: "done" });
-      writeTask("T0032", "dep-two", { status: "in-progress" });
+      await writeTask("T0031", "dep-one", { status: "done" });
+      await writeTask("T0032", "dep-two", { status: "in-progress" });
 
       await expect(assignCommand("T0030", tmpDir)).rejects.toThrow(
         "is blocked. Depends on: T0032 (in-progress)",
@@ -209,11 +229,11 @@ describe("assignCommand", () => {
     });
 
     it("rejects assignment when multiple dependencies are not done", async () => {
-      writeTask("T0033", "target", {
+      await writeTask("T0033", "target", {
         dependencies: ["T0034", "T0035"],
       });
-      writeTask("T0034", "dep-one", { status: "new" });
-      writeTask("T0035", "dep-two", { status: "new" });
+      await writeTask("T0034", "dep-one", { status: "new" });
+      await writeTask("T0035", "dep-two", { status: "new" });
 
       await expect(assignCommand("T0033", tmpDir)).rejects.toThrow(
         "is blocked. Depends on: T0034 (new), T0035 (new)",
@@ -221,18 +241,18 @@ describe("assignCommand", () => {
     });
 
     it("allows assignment when all dependencies are done", async () => {
-      writeTask("T0036", "target", {
+      await writeTask("T0036", "target", {
         dependencies: ["T0037", "T0038"],
       });
-      writeTask("T0037", "dep-one", { status: "done" });
-      writeTask("T0038", "dep-two", { status: "done" });
+      await writeTask("T0037", "dep-one", { status: "done" });
+      await writeTask("T0038", "dep-two", { status: "done" });
 
       const result = await assignCommand("T0036", tmpDir);
       expect(result.session.taskId).toBe("T0036");
     });
 
     it("allows assignment when there are no dependencies", async () => {
-      writeTask("T0039", "target", { dependencies: [] });
+      await writeTask("T0039", "target", { dependencies: [] });
       const result = await assignCommand("T0039", tmpDir);
       expect(result.session.taskId).toBe("T0039");
     });
@@ -240,7 +260,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - session file", () => {
     it("throws when session file already exists", async () => {
-      writeTask("T0040", "git-worktree");
+      await writeTask("T0040", "git-worktree");
 
       // Simulate a pre-existing session
       writeSession(tmpDir, {
@@ -257,7 +277,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - stale worktree", () => {
     it("throws when worktree path already exists in git worktree list", async () => {
-      writeTask("T0050", "git-worktree");
+      await writeTask("T0050", "git-worktree");
 
       // Create a stale worktree manually
       await git(["branch", "old-branch", "HEAD"], tmpDir);
@@ -271,7 +291,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - stale branch", () => {
     it("throws when branch already exists (without worktree)", async () => {
-      writeTask("T0060", "git-worktree");
+      await writeTask("T0060", "git-worktree");
 
       // Create just the branch, no worktree
       await git(["branch", "T0060-git-worktree", "HEAD"], tmpDir);
@@ -323,7 +343,8 @@ describe("cleanupWorktree", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function writeTask(id: string, slug: string): void {
+  async function writeTask(id: string, slug: string): Promise<string> {
+    const filename = `${id}-${slug}.md`;
     const fm: Record<string, unknown> = {
       id,
       title: `Task ${id}`,
@@ -333,14 +354,19 @@ describe("cleanupWorktree", () => {
     const yaml = Object.entries(fm)
       .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
       .join("\n");
-    fs.writeFileSync(
-      path.join(tasksDir, `${id}-${slug}.md`),
-      `---\n${yaml}\n---\nBody`,
+    const filePath = path.join(tasksDir, filename);
+    fs.writeFileSync(filePath, `---\n${yaml}\n---\nBody`);
+    // Commit so the worktree checkout includes the file.
+    await git(["add", "-A"], tmpDir);
+    await git(
+      ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", `add ${filename}`],
+      tmpDir,
     );
+    return filePath;
   }
 
   it("removes worktree, branch, and session file", async () => {
-    writeTask("T0070", "git-worktree");
+    await writeTask("T0070", "git-worktree");
     await assignCommand("T0070", tmpDir);
 
     await cleanupWorktree("T0070", tmpDir);
@@ -367,7 +393,7 @@ describe("cleanupWorktree", () => {
   });
 
   it("removes worktree directory from disk", async () => {
-    writeTask("T0071", "git-worktree");
+    await writeTask("T0071", "git-worktree");
     await assignCommand("T0071", tmpDir);
 
     const wtPath = path.join(tmpDir, ".worktrees", "T0071");

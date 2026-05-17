@@ -7,6 +7,7 @@ import { createElement } from "react";
 import { render } from "ink";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
+import { runIntegration } from "./commands/integrate.js";
 import { requireInit, readConfig } from "./commands/config.js";
 import { TaskCollection } from "./models/task.js";
 import { App } from "./tui/app.js";
@@ -115,10 +116,33 @@ program
 program
   .command("integrate <taskId>")
   .description("Run integration flow for a completed task")
-  .action((_taskId: string) => {
+  .action(async (taskId: string) => {
     requireInit();
-    // T0008
-    console.log("integrate command not yet implemented");
+    try {
+      await runIntegration(taskId, process.cwd(), (event) => {
+        switch (event.type) {
+          case "progress":
+            console.log(event.message);
+            break;
+          case "conflict":
+            console.error(event.message);
+            break;
+          case "test-failure":
+            console.error(event.message);
+            console.error(event.output);
+            break;
+          case "error":
+            console.error(event.message);
+            break;
+          case "complete":
+            console.log(`${event.taskId} integration complete`);
+            break;
+        }
+      });
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
   });
 
 // Default: launch TUI (T0007)

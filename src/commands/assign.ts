@@ -1,22 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { requireInit } from "./config.js";
 import { TaskCollection, updateTaskStatus } from "../models/task.js";
 import type { Task } from "../models/task.js";
 import { readSession, writeSession, deleteSession } from "../models/session.js";
 import type { Session } from "../models/session.js";
-
-const execFileAsync = promisify(execFile);
-
-async function git(
-  args: string[],
-  cwd: string,
-): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
-  return stdout;
-}
+import { git } from "./git.js";
 
 export function deriveBranchName(filename: string): string {
   if (!filename.endsWith(".md")) {
@@ -125,9 +114,17 @@ export async function assignCommand(
     throw err;
   }
 
-  // Update task status; clean up branch + worktree on failure
+  // Update task status in the worktree (not on the main branch). This keeps
+  // the main branch clean during active work. The TUI merges statuses from
+  // worktree task files when displaying columns.
+  //
+  // The worktree gets the task file from the git checkout (task files must
+  // be committed on main). Creating the file here would cause an add/add
+  // conflict when the worktree branch is later rebased onto main.
+  // Clean up branch + worktree on failure.
   try {
-    updateTaskStatus(task.filePath, "in-progress");
+    const worktreeTaskPath = path.join(cwd, wtPath, "ravel", "tasks", task.filename);
+    updateTaskStatus(worktreeTaskPath, "in-progress");
   } catch (err) {
     try {
       await git(["worktree", "remove", "--force", wtPath], cwd);

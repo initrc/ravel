@@ -58,6 +58,9 @@ describe("DEFAULT_CONFIG", () => {
       builderCommand: "claude",
       copyCommandByDefault: false,
       maxConcurrentBuilders: 2,
+      mainBranch: "main",
+      testCommand: "npm test",
+      pushOnIntegration: true,
     });
   });
 });

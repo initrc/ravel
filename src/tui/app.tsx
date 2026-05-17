@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { useInput, useApp } from "ink";
 import { Dashboard } from "./components/Dashboard.js";
 import { RavelWatcher } from "../watcher.js";
-import { TaskCollection, type Task } from "../models/task.js";
+import { TaskCollection, parseTask, type Task } from "../models/task.js";
+import { readSession } from "../models/session.js";
 import { readConfig } from "../commands/config.js";
 import { assignCommand } from "../commands/assign.js";
+import { runIntegration } from "../commands/integrate.js";
+import type { IntegrationEvent } from "../commands/integrate.js";
 import { generateLaunchCommand } from "../commands/prompt.js";
 import type { RavelEvent } from "../models/events.js";
 
@@ -45,27 +49,113 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
 
   const tasksDir = path.join(projectRoot, "ravel", "tasks");
 
-  useEffect(() => {
+  // Track already-integrated task IDs within this TUI session to prevent
+  // double-integration.
+  const integratedRef = useRef<Set<string>>(new Set());
+
+  const addEvent = (message: string) => {
+    setEvents((prev) => {
+      const next = [...prev, { timestamp: new Date(), message }];
+      return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
+    });
+  };
+
+  // Load tasks from the main repo, then merge in statuses from active
+  // worktrees. This keeps the main branch clean (no uncommitted status
+  // changes) while reflecting the Builder's actual progress in the TUI.
+  const reloadTasks = () => {
     const collection = TaskCollection.load(tasksDir);
+
+    // Merge worktree statuses for active sessions
+    const sessionsDir = path.join(projectRoot, ".ravel", "sessions");
+    if (fs.existsSync(sessionsDir)) {
+      for (const entry of fs.readdirSync(sessionsDir, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+        const taskId = entry.name.replace(/\.json$/, "");
+        const session = readSession(projectRoot, taskId);
+        if (!session) continue;
+        const wtTasksDir = path.join(
+          projectRoot,
+          session.worktreePath,
+          "ravel",
+          "tasks",
+        );
+        if (!fs.existsSync(wtTasksDir)) continue;
+        for (const wtEntry of fs.readdirSync(wtTasksDir, { withFileTypes: true })) {
+          if (!wtEntry.isFile() || !wtEntry.name.endsWith(".md")) continue;
+          try {
+            const wtTask = parseTask(path.join(wtTasksDir, wtEntry.name));
+            const mainTask = collection.get(wtTask.id);
+            if (mainTask && mainTask.status !== wtTask.status) {
+              mainTask.status = wtTask.status;
+            }
+          } catch {
+            // skip unparseable files
+          }
+        }
+      }
+    }
+
     setTasks(collection.list());
+  };
+
+  const integrateTask = (taskId: string) => {
+    if (integratedRef.current.has(taskId)) return;
+
+    integratedRef.current.add(taskId);
+    addEvent(`${taskId} integration: starting...`);
+
+    runIntegration(taskId, projectRoot, (event: IntegrationEvent) => {
+      switch (event.type) {
+        case "progress":
+          addEvent(`${taskId} integration: ${event.message}`);
+          break;
+        case "conflict":
+          addEvent(event.message);
+          reloadTasks();
+          break;
+        case "test-failure":
+          addEvent(event.message);
+          reloadTasks();
+          break;
+        case "error":
+          addEvent(`${event.taskId} integration error: ${event.message}`);
+          reloadTasks();
+          break;
+        case "complete":
+          addEvent(`${event.taskId} integration complete`);
+          reloadTasks();
+          break;
+      }
+    }).catch((err) => {
+      addEvent(`${taskId} integration error: ${(err as Error).message}`);
+      reloadTasks();
+    });
+  };
+
+  useEffect(() => {
+    reloadTasks();
 
     const watcher = new RavelWatcher(projectRoot);
 
     watcher.on("event", (event: RavelEvent) => {
-      setEvents((prev) => {
-        const next = [
-          ...prev,
-          { timestamp: new Date(), message: formatEvent(event) },
-        ];
-        return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
-      });
+      // Always log events
+      addEvent(formatEvent(event));
 
       if (
         event.type === "task-created" ||
         event.type === "task-status-changed"
       ) {
-        const reloaded = TaskCollection.load(tasksDir);
-        setTasks(reloaded.list());
+        reloadTasks();
+
+        // Auto-trigger integration when a task in a worktree is marked done
+        if (
+          event.type === "task-status-changed" &&
+          event.newStatus === "done" &&
+          event.filePath.includes(".worktrees")
+        ) {
+          integrateTask(event.taskId);
+        }
       }
     });
 
@@ -91,10 +181,11 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     if (command === "/help") {
       setCommandOutput([
         "Available commands:",
-        "  /help           Show this help",
-        "  /config         Show current configuration",
-        "  /assign <id>    Assign a task",
-        "  /exit or /quit  Exit the dashboard",
+        "  /help            Show this help",
+        "  /config          Show current configuration",
+        "  /assign <id>     Assign a task",
+        "  /integrate <id>  Run integration flow for a completed task",
+        "  /exit or /quit   Exit the dashboard",
       ]);
       return;
     }
@@ -106,6 +197,9 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           `builderCommand: ${config.builderCommand}`,
           `copyCommandByDefault: ${config.copyCommandByDefault}`,
           `maxConcurrentBuilders: ${config.maxConcurrentBuilders}`,
+          `mainBranch: ${config.mainBranch}`,
+          `testCommand: ${config.testCommand}`,
+          `pushOnIntegration: ${config.pushOnIntegration}`,
         ]);
       } catch (err) {
         setCommandOutput([`Error: ${(err as Error).message}`]);
@@ -145,6 +239,18 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       } catch (err) {
         setCommandOutput([`Error: ${(err as Error).message}`]);
       }
+      return;
+    }
+
+    if (command.startsWith("/integrate")) {
+      const taskId = command.split(" ")[1];
+      if (!taskId) {
+        setCommandOutput(["Usage: /integrate <taskId>"]);
+        return;
+      }
+
+      integrateTask(taskId);
+      setCommandOutput([`Integration started for ${taskId}. See event log for progress.`]);
       return;
     }
 

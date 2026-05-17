@@ -328,7 +328,7 @@ Responsibilities:
 3. Validate dependency state
 4. Create git branch
 5. Create git worktree
-6. Update task status to `in-progress`
+6. Update task status to `in-progress` — in the worktree copy, not on the main branch. This keeps the main branch clean during active development.
 7. Generate Builder prompt
 8. Generate launch command (cd + ravel prompt --copy + builder)
 9. Optionally copy launch command to clipboard
@@ -454,6 +454,14 @@ Ravel dynamically starts watching:
 
 This allows the main TUI to observe Builder status changes.
 
+### TUI status resolution
+
+The TUI loads task statuses from the main repo's `ravel/tasks/`, then merges the worktree copy for any task with an active session. This means:
+
+- The main branch's task file stays untouched (no uncommitted status changes).
+- When a Builder changes a task to `review` or `done` in the worktree, the TUI reflects it immediately.
+- When a session ends (worktree removed), the TUI falls back to the main branch's task file.
+
 Example:
 
 Builder changes:
@@ -480,23 +488,30 @@ status: done
 
 Ravel performs:
 
-1. Git rebase onto main branch
-2. Run tests
-3. Push merged result
-4. Remove worktree
-5. Remove session file
-6. Log completion
+1. Fetch latest main branch (remote-tracking ref `origin/main` when a remote exists; otherwise local `main`)
+2. Rebase worktree branch onto the fetched target
+3. Run tests (configurable `testCommand`; skipped when empty)
+4. Push rebased branch to remote (skipped when `pushOnIntegration` is false or no remote exists)
+5. Clean up worktree and branch
+6. Remove session file
+7. Update task status to `done` on the main branch (so dependent tasks become assignable)
+8. Sync local main branch via `git pull --ff-only` to keep the working directory up to date
+
+### Remote vs local-only repos
+
+Ravel works with or without a git remote:
+
+- **Remote exists**: fetches `origin/main`, rebases onto `origin/main`, pushes the task branch.
+- **No remote**: skips fetch and push, rebases directly onto the local `main` branch.
 
 ### Rebase Conflicts
 
 If rebase conflicts occur:
 
-- Integration pauses
-- Ravel informs the user
-- User returns to Builder session
-- Builder resolves conflicts
-- User re-approves with LGTM
-- Ravel retries integration
+- Rebase is aborted to restore state.
+- Ravel logs the conflict and pauses.
+- User resolves conflicts manually in the worktree.
+- User re-triggers integration with `ravel integrate <taskId>`.
 
 Builder owns code changes.
 
@@ -518,9 +533,18 @@ Example:
 {
   "builderCommand": "claude",
   "copyCommandByDefault": false,
-  "maxConcurrentBuilders": 2
+  "maxConcurrentBuilders": 2,
+  "mainBranch": "main",
+  "testCommand": "npm test",
+  "pushOnIntegration": true
 }
 ```
+
+`testCommand` may be set to `""` to skip tests during integration.
+
+`pushOnIntegration` may be set to `false` to skip the push step.
+
+`mainBranch` sets the branch to rebase onto (defaults to `main`).
 
 Ravel does not configure Builder models.
 

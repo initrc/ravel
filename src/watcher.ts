@@ -99,11 +99,11 @@ export class RavelWatcher extends EventEmitter {
       }
     });
 
-    this.mainWatcher.on("unlink", (filePath: string) => {
+    this.mainWatcher.on("unlink", async (filePath: string) => {
       if (filePath.startsWith(sessionsDir) && filePath.endsWith(".json")) {
         const taskId = path.basename(filePath).replace(/\.json$/, "");
         this.knownSessions.delete(taskId);
-        this.stopWatchingWorktree(taskId);
+        await this.stopWatchingWorktree(taskId);
       }
     });
   }
@@ -246,10 +246,10 @@ export class RavelWatcher extends EventEmitter {
     this.worktreeWatchers.set(taskId, watcher);
   }
 
-  private stopWatchingWorktree(taskId: string): void {
+  private async stopWatchingWorktree(taskId: string): Promise<void> {
     const watcher = this.worktreeWatchers.get(taskId);
     if (watcher) {
-      void watcher.close();
+      await watcher.close();
       this.worktreeWatchers.delete(taskId);
     }
   }
