@@ -10,16 +10,16 @@ dependencies:
 
 After the agent command is set during `ravel init`, intelligently set the `testCommand` default:
 - If the current repo has a `package.json` with a `"test"` script, default `testCommand` to `"npm test"` and tell the user why.
-- Otherwise, leave it as `"npm test"` (it's a sensible default that will just fail fast if misconfigured) or set a placeholder.
+- Otherwise, leave `testCommand` empty. An empty `testCommand` skips test execution during integration.
 
 Additionally, during `ravel init`, after the agent picker step, check these conditions and inform the user:
 - "Detected npm project with test script. Set testCommand to 'npm test'."
-- Or if not detected: "No npm test script detected. You can configure testCommand in .ravel/config.json."
+- Or if not detected: a generic message explaining when and why `testCommand` is used (e.g., "testCommand runs your test suite before merging. Set it in .ravel/config.json.").
 
 # Acceptance
 
 - `ravel init` detects `package.json` with a `"test"` script and sets `testCommand: "npm test"` with an informative message.
-- `ravel init` still sets `testCommand: "npm test"` as default even without detection (unchanged behavior), but tells the user they can edit it.
+- When no test script is detected, `testCommand` is left empty so integration skips test execution. The user is told they can configure it.
 - `npm test` passes.
 
 # Implementation Notes
