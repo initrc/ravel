@@ -1,6 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import * as readline from "node:readline";
 import { DEFAULT_CONFIG } from "./config.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -10,6 +12,87 @@ function templatePath(name: string, baseDir: string): string {
 }
 
 const defaultTemplateDir = path.join(thisDir, "..", "templates");
+
+const KNOWN_AGENTS = [
+  "claude",
+  "codex",
+  "gemini-cli",
+  "qwen",
+  "opencode",
+  "pi",
+];
+
+export function isOnPath(cmd: string): boolean {
+  try {
+    execFileSync("which", [cmd], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function findAgentsOnPath(): string[] {
+  return KNOWN_AGENTS.filter((cmd) => isOnPath(cmd));
+}
+
+function pickAgent(available: string[]): Promise<string> {
+  return new Promise((resolve) => {
+    if (available.length === 0) {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      console.log("\nNo known AI coding agents found on your PATH.");
+      console.log("Known agents: " + KNOWN_AGENTS.join(", "));
+      rl.question("Enter the command for your agent: ", (answer) => {
+        rl.close();
+        resolve(answer.trim() || "claude");
+      });
+      return;
+    }
+
+    console.log("\nSelect the AI coding agent you'd like to use:");
+    available.forEach((agent, i) => {
+      console.log(`  ${i + 1}. ${agent}`);
+    });
+    console.log("");
+
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+
+    const onData = (data: Buffer) => {
+      const key = data.toString("utf-8");
+      // Check for digit keys 1-9
+      const digit = parseInt(key, 10);
+      if (digit >= 1 && digit <= available.length) {
+        cleanup();
+        resolve(available[digit - 1]);
+      }
+      // Ctrl-C to cancel
+      if (key === "\x03") {
+        cleanup();
+        process.exit(1);
+      }
+    };
+
+    const cleanup = () => {
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
+      process.stdin.removeListener("data", onData);
+      process.stdin.pause();
+    };
+
+    process.stdin.on("data", onData);
+  });
+}
+
+async function pickAgentInteractive(): Promise<string> {
+  const available = findAgentsOnPath();
+  return pickAgent(available);
+}
 
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
@@ -43,7 +126,10 @@ function ensureGitignore(cwd: string): void {
 
 function generateAgentsMd(cwd: string, templatesDir: string): void {
   const agentsPath = path.join(cwd, "AGENTS.md");
-  const templateContent = fs.readFileSync(templatePath("AGENTS.md", templatesDir), "utf-8");
+  const templateContent = fs.readFileSync(
+    templatePath("AGENTS.md", templatesDir),
+    "utf-8",
+  );
 
   // The ravel section is everything after the top-level heading (if present)
   const ravelSection = templateContent.replace(/^# AGENTS\.md\n\n?/, "").trim();
@@ -86,7 +172,11 @@ function generateAgentsMd(cwd: string, templatesDir: string): void {
   }
 }
 
-export function initCommand(cwd: string = process.cwd(), templateDir?: string): void {
+export async function initCommand(
+  cwd: string = process.cwd(),
+  templateDir?: string,
+  agentCommand?: string,
+): Promise<void> {
   const templatesDir = templateDir ?? defaultTemplateDir;
   const configPath = path.join(cwd, ".ravel", "config.json");
 
@@ -113,8 +203,17 @@ export function initCommand(cwd: string = process.cwd(), templateDir?: string): 
     writeIfMissing(conventionsDest, fs.readFileSync(conventionsSrc, "utf-8"));
   }
 
-  // Generate .ravel/config.json with defaults (idempotent)
-  writeIfMissing(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n");
+  // Pick agent command
+  let chosenAgent: string;
+  if (agentCommand !== undefined) {
+    chosenAgent = agentCommand;
+  } else {
+    chosenAgent = await pickAgentInteractive();
+  }
+
+  // Generate .ravel/config.json with defaults
+  const config = { ...DEFAULT_CONFIG, agentCommand: chosenAgent };
+  writeIfMissing(configPath, JSON.stringify(config, null, 2) + "\n");
 
   // Add entries to .gitignore
   ensureGitignore(cwd);
@@ -128,4 +227,6 @@ export function initCommand(cwd: string = process.cwd(), templateDir?: string): 
   console.log("  Created: .ravel/config.json");
   console.log("  Updated: .gitignore");
   console.log("  Updated: AGENTS.md");
+  console.log();
+  console.log("The rest of the settings can be edited in .ravel/config.json.");
 }

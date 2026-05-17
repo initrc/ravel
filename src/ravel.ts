@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
+
 import { createElement } from "react";
 import { render } from "ink";
-import { initCommand } from "./commands/init.js";
+import { initCommand, isOnPath } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
 import { runIntegration } from "./commands/integrate.js";
 import { requireInit, readConfig } from "./commands/config.js";
@@ -18,14 +18,6 @@ import {
   commandForClipboard,
 } from "./commands/prompt.js";
 
-function isRavelOnPath(): boolean {
-  try {
-    execFileSync("ravel", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const program = new Command();
 
@@ -37,8 +29,8 @@ program
 program
   .command("init")
   .description("Initialize a Ravel project")
-  .action(() => {
-    initCommand();
+  .action(async () => {
+    await initCommand();
   });
 
 program
@@ -53,7 +45,7 @@ program
       console.log(`Branch: ${session.branch}`);
 
       const config = readConfig();
-      const ravelCmd = isRavelOnPath()
+      const ravelCmd = isOnPath("ravel")
         ? "ravel"
         : "node './bin/ravel.js'";
       const worktreeAbs = path.resolve(process.cwd(), session.worktreePath);
@@ -62,7 +54,7 @@ program
         ravelCmd,
         process.cwd(),
         worktreeAbs,
-        config.builderCommand,
+        config.agentCommand,
       );
 
       console.log(
@@ -154,7 +146,7 @@ program
 // Default: launch TUI (T0007)
 program.action(async () => {
   requireInit();
-  const ravelCmd = isRavelOnPath()
+  const ravelCmd = isOnPath("ravel")
     ? "ravel"
     : "node './bin/ravel.js'";
   const { waitUntilExit } = render(

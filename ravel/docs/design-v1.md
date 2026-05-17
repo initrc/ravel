@@ -528,7 +528,7 @@ Example:
 
 ```json
 {
-  "builderCommand": "claude",
+  "agentCommand": "claude",
   "copyCommandByDefault": false,
 
   "mainBranch": "main",
@@ -540,9 +540,9 @@ Example:
 
 `mainBranch` sets the branch to rebase onto (defaults to `main`).
 
-Ravel does not configure Builder models.
+Ravel does not configure agent models.
 
-Users configure model selection inside the Builder harness.
+Users configure model selection inside the agent harness.
 
 ---
 

@@ -6,11 +6,11 @@ import { ConfigSchema, DEFAULT_CONFIG, requireInit } from "./config.js";
 describe("ConfigSchema", () => {
   it("parses a full valid config", () => {
     const result = ConfigSchema.parse({
-      builderCommand: "codex",
+      agentCommand: "codex",
       copyCommandByDefault: true,
       mainBranch: "develop",
     });
-    expect(result.builderCommand).toBe("codex");
+    expect(result.agentCommand).toBe("codex");
     expect(result.copyCommandByDefault).toBe(true);
     expect(result.mainBranch).toBe("develop");
   });
@@ -23,12 +23,12 @@ describe("ConfigSchema", () => {
   it("applies partial defaults", () => {
     const result = ConfigSchema.parse({ mainBranch: "develop" });
     expect(result.mainBranch).toBe("develop");
-    expect(result.builderCommand).toBe("claude");
+    expect(result.agentCommand).toBe("claude");
     expect(result.copyCommandByDefault).toBe(false);
   });
 
-  it("rejects a non-string builderCommand", () => {
-    expect(() => ConfigSchema.parse({ builderCommand: 123 })).toThrow();
+  it("rejects a non-string agentCommand", () => {
+    expect(() => ConfigSchema.parse({ agentCommand: 123 })).toThrow();
   });
 
   it("rejects a non-boolean flag", () => {
@@ -43,7 +43,7 @@ describe("DEFAULT_CONFIG", () => {
 
   it("has the expected defaults", () => {
     expect(DEFAULT_CONFIG).toEqual({
-      builderCommand: "claude",
+      agentCommand: "claude",
       copyCommandByDefault: false,
       mainBranch: "main",
       testCommand: "npm test",

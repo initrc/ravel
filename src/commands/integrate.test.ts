@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IntegrationEvent } from "./integrate.js";
 
 const DEFAULT_CONFIG = {
-  builderCommand: "claude",
+  agentCommand: "claude",
   copyCommandByDefault: false,
   mainBranch: "main",
   testCommand: "npm test",

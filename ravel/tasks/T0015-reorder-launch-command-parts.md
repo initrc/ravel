@@ -13,7 +13,7 @@ dependencies: []
 
 # Acceptance
 
-- `generateLaunchCommand()` produces `cd '<projectRoot>' && ravel prompt <taskId> --copy && cd '<relativeWorktreePath>' && <builderCommand>`.
+- `generateLaunchCommand()` produces `cd '<projectRoot>' && ravel prompt <taskId> --copy && cd '<relativeWorktreePath>' && <agentCommand>`.
 - `npm run build` succeeds.
 - `npm test` passes.
 
@@ -28,4 +28,4 @@ Added `projectRoot` parameter because `ravel` won't run outside a ravel-initiali
 1. `cd <projectRoot>` — enter the ravel-initialized repo where `ravel` works
 2. `ravel prompt <taskId> --copy` — generate and copy the prompt
 3. `cd <relativeWorktreePath>` — enter the worktree (relative path from project root)
-4. `<builderCommand>` — launch the coding agent
+4. `<agentCommand>` — launch the coding agent

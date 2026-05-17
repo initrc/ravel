@@ -66,14 +66,14 @@ export function generateLaunchCommand(
   ravelCmd: string,
   projectRoot: string,
   worktreePath: string,
-  builderCommand: string,
+  agentCommand: string,
 ): string {
   const relWorktree = path.relative(projectRoot, worktreePath);
   return (
     `cd '${projectRoot}'` +
     ` && ${ravelCmd} prompt ${taskId} --copy` +
     ` && cd '${relWorktree}'` +
-    ` && ${builderCommand}`
+    ` && ${agentCommand}`
   );
 }
 

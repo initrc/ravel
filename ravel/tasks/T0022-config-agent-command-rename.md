@@ -1,7 +1,7 @@
 ---
 id: T0022
 title: Rename builderCommand to agentCommand and add agent picker to init
-status: new
+status: done
 dependencies: []
 ---
 

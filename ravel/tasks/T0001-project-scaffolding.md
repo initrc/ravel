@@ -18,7 +18,7 @@ dependencies: []
 
 - `ravel init` creates all required directories.
 - `ravel/docs/ravel-conventions.md` exists with task format, valid statuses, naming conventions, and blocked computation rules.
-- `.ravel/config.json` exists with `builderCommand`, `copyCommandByDefault`, `mainBranch`, `testCommand`, `pushOnIntegration` defaults.
+- `.ravel/config.json` exists with `agentCommand`, `copyCommandByDefault`, `mainBranch`, `testCommand`, `pushOnIntegration` defaults.
 - `.gitignore` contains `.ravel/` and `.worktrees/`.
 - Running `ravel init` on an already-initialized project is idempotent.
 - Other commands show "This does not look like a Ravel project. Run: ravel init" when not initialized.
@@ -36,7 +36,7 @@ dependencies: []
 import { z } from "zod";
 
 const ConfigSchema = z.object({
-  builderCommand: z.string().default("claude"),
+  agentCommand: z.string().default("claude"),
   copyAssignCommandByDefault: z.boolean().default(false),
   copyPromptByDefault: z.boolean().default(false),
 });

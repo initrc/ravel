@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { z } from "zod";
 
 export const ConfigSchema = z.object({
-  builderCommand: z.string().default("claude"),
+  agentCommand: z.string().default("claude"),
   copyCommandByDefault: z.boolean().default(false),
   mainBranch: z.string().default("main"),
   testCommand: z.string().default("npm test"),
@@ -13,7 +13,7 @@ export const ConfigSchema = z.object({
 export type Config = z.infer<typeof ConfigSchema>;
 
 export const DEFAULT_CONFIG: Config = {
-  builderCommand: "claude",
+  agentCommand: "claude",
   copyCommandByDefault: false,
   mainBranch: "main",
   testCommand: "npm test",

@@ -32,7 +32,7 @@ dependencies:
 
 # Implementation Notes
 
-- Builder command comes from `.ravel/config.json` `builderCommand`.
+- Builder command comes from `.ravel/config.json` `agentCommand`.
 - Launch Builder in a new terminal (separate process).
 - The assign command runs in its own terminal, not the TUI.
 

@@ -285,7 +285,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
         try {
           const config = readConfig(projectRoot);
           setCommandOutput([
-            { text: `builderCommand: ${config.builderCommand}` },
+            { text: `agentCommand: ${config.agentCommand}` },
             { text: `copyCommandByDefault: ${config.copyCommandByDefault}` },
             { text: `mainBranch: ${config.mainBranch}` },
             { text: `testCommand: ${config.testCommand}` },
@@ -306,7 +306,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
             ravelCmd,
             projectRoot,
             worktreeAbs,
-            config.builderCommand,
+            config.agentCommand,
           );
 
           // Auto-copy since TUI owns the terminal (no interactive prompt)

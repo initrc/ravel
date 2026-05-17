@@ -23,8 +23,8 @@ describe("initCommand", () => {
   });
 
   describe("directory structure", () => {
-    it("creates all required directories", () => {
-      initCommand(tmpDir, templatesDir);
+    it("creates all required directories", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
 
       expect(fs.existsSync(path.join(tmpDir, "ravel", "docs"))).toBe(true);
       expect(fs.existsSync(path.join(tmpDir, "ravel", "tasks"))).toBe(true);
@@ -34,19 +34,19 @@ describe("initCommand", () => {
   });
 
   describe(".ravel/config.json", () => {
-    it("writes config with default values", () => {
-      initCommand(tmpDir, templatesDir);
+    it("writes config with the chosen agent command", async () => {
+      await initCommand(tmpDir, templatesDir, "codex");
 
       const configPath = path.join(tmpDir, ".ravel", "config.json");
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-      expect(config.builderCommand).toBe("claude");
+      expect(config.agentCommand).toBe("codex");
       expect(config.copyCommandByDefault).toBe(false);
     });
   });
 
   describe("ravel-conventions.md", () => {
-    it("copies conventions template to ravel/docs", () => {
-      initCommand(tmpDir, templatesDir);
+    it("copies conventions template to ravel/docs", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const dest = path.join(tmpDir, "ravel", "docs", "ravel-conventions.md");
       expect(fs.existsSync(dest)).toBe(true);
@@ -57,28 +57,28 @@ describe("initCommand", () => {
   });
 
   describe(".gitignore", () => {
-    it("creates .gitignore with required entries", () => {
-      initCommand(tmpDir, templatesDir);
+    it("creates .gitignore with required entries", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const gitignore = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain(".ravel/");
       expect(gitignore).toContain(".worktrees/");
     });
 
-    it("does not duplicate entries when .gitignore already has them", () => {
+    it("does not duplicate entries when .gitignore already has them", async () => {
       fs.writeFileSync(path.join(tmpDir, ".gitignore"), ".ravel/\n.worktrees/\n");
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const gitignore = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
       const count = (gitignore.match(/\.ravel\//g) || []).length;
       expect(count).toBe(1);
     });
 
-    it("preserves existing .gitignore content", () => {
+    it("preserves existing .gitignore content", async () => {
       fs.writeFileSync(path.join(tmpDir, ".gitignore"), "node_modules/\n");
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const gitignore = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain("node_modules/");
@@ -87,46 +87,47 @@ describe("initCommand", () => {
   });
 
   describe("idempotency", () => {
-    it("does not overwrite existing config on second run", () => {
-      initCommand(tmpDir, templatesDir);
+    it("does not overwrite existing config on second run", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const configPath = path.join(tmpDir, ".ravel", "config.json");
       fs.writeFileSync(
         configPath,
         JSON.stringify({
-          builderCommand: "claude",
+          agentCommand: "codex",
           copyCommandByDefault: false,
           mainBranch: "develop",
         }),
       );
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "codex");
 
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
       expect(config.mainBranch).toBe("develop");
+      expect(config.agentCommand).toBe("codex");
     });
 
-    it("does not overwrite existing conventions file", () => {
+    it("does not overwrite existing conventions file", async () => {
       const conventionsDir = path.join(tmpDir, "ravel", "docs");
       fs.mkdirSync(conventionsDir, { recursive: true });
       const conventionsPath = path.join(conventionsDir, "ravel-conventions.md");
       fs.writeFileSync(conventionsPath, "custom conventions content");
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       expect(fs.readFileSync(conventionsPath, "utf-8")).toBe("custom conventions content");
     });
   });
 
   describe("already initialized", () => {
-    it("prints message and exits early when config already exists", () => {
+    it("prints message and exits early when config already exists", async () => {
       fs.mkdirSync(path.join(tmpDir, ".ravel"), { recursive: true });
       fs.writeFileSync(
         path.join(tmpDir, ".ravel", "config.json"),
-        JSON.stringify({ builderCommand: "claude" }),
+        JSON.stringify({ agentCommand: "claude" }),
       );
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       expect(consoleLog).toHaveBeenCalledWith("Ravel is already initialized.");
       // Should not create the task directory
@@ -135,25 +136,25 @@ describe("initCommand", () => {
   });
 
   describe("AGENTS.md generation", () => {
-    it("creates AGENTS.md from template when it does not exist", () => {
-      initCommand(tmpDir, templatesDir);
+    it("creates AGENTS.md from template when it does not exist", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const content = fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8");
       expect(content).toContain("## Ravel Conventions");
       expect(content).toContain("ravel/docs/ravel-conventions.md");
     });
 
-    it("appends Ravel Conventions section when AGENTS.md exists without it", () => {
+    it("appends Ravel Conventions section when AGENTS.md exists without it", async () => {
       fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), "# My Project\n\nSome project content\n");
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const content = fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8");
       expect(content).toContain("# My Project");
       expect(content).toContain("## Ravel Conventions");
     });
 
-    it("replaces existing Ravel Conventions section on re-init", () => {
+    it("replaces existing Ravel Conventions section on re-init", async () => {
       fs.writeFileSync(
         path.join(tmpDir, "AGENTS.md"),
         [
@@ -167,7 +168,7 @@ describe("initCommand", () => {
         ].join("\n"),
       );
 
-      initCommand(tmpDir, templatesDir);
+      await initCommand(tmpDir, templatesDir, "claude");
 
       const content = fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8");
       expect(content).toContain("# My Project");
