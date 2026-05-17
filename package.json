@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc && mkdir -p bin && cp -r templates bin/",
     "ravel": "node bin/ravel.js",
+    "start": "npm run ravel",
     "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint --fix ."
