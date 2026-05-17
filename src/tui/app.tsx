@@ -247,7 +247,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
         setCommandOutput([
           `builderCommand: ${config.builderCommand}`,
           `copyCommandByDefault: ${config.copyCommandByDefault}`,
-          `maxConcurrentBuilders: ${config.maxConcurrentBuilders}`,
+
           `mainBranch: ${config.mainBranch}`,
           `testCommand: ${config.testCommand}`,
           `pushOnIntegration: ${config.pushOnIntegration}`,

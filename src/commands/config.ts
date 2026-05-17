@@ -5,7 +5,6 @@ import { z } from "zod";
 export const ConfigSchema = z.object({
   builderCommand: z.string().default("claude"),
   copyCommandByDefault: z.boolean().default(false),
-  maxConcurrentBuilders: z.number().int().min(1).default(2),
   mainBranch: z.string().default("main"),
   testCommand: z.string().default("npm test"),
   pushOnIntegration: z.boolean().default(true),
@@ -16,7 +15,6 @@ export type Config = z.infer<typeof ConfigSchema>;
 export const DEFAULT_CONFIG: Config = {
   builderCommand: "claude",
   copyCommandByDefault: false,
-  maxConcurrentBuilders: 2,
   mainBranch: "main",
   testCommand: "npm test",
   pushOnIntegration: true,

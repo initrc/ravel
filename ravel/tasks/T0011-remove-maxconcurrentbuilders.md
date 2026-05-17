@@ -1,7 +1,7 @@
 ---
 id: T0011
 title: Remove maxConcurrentBuilders config
-status: new
+status: done
 dependencies: []
 ---
 

@@ -41,7 +41,6 @@ describe("initCommand", () => {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
       expect(config.builderCommand).toBe("claude");
       expect(config.copyCommandByDefault).toBe(false);
-      expect(config.maxConcurrentBuilders).toBe(2);
     });
   });
 
@@ -97,14 +96,14 @@ describe("initCommand", () => {
         JSON.stringify({
           builderCommand: "claude",
           copyCommandByDefault: false,
-          maxConcurrentBuilders: 4,
+          mainBranch: "develop",
         }),
       );
 
       initCommand(tmpDir, templatesDir);
 
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-      expect(config.maxConcurrentBuilders).toBe(4);
+      expect(config.mainBranch).toBe("develop");
     });
 
     it("does not overwrite existing conventions file", () => {

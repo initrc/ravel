@@ -8,11 +8,11 @@ describe("ConfigSchema", () => {
     const result = ConfigSchema.parse({
       builderCommand: "codex",
       copyCommandByDefault: true,
-      maxConcurrentBuilders: 4,
+      mainBranch: "develop",
     });
     expect(result.builderCommand).toBe("codex");
     expect(result.copyCommandByDefault).toBe(true);
-    expect(result.maxConcurrentBuilders).toBe(4);
+    expect(result.mainBranch).toBe("develop");
   });
 
   it("applies all defaults when given an empty object", () => {
@@ -21,22 +21,10 @@ describe("ConfigSchema", () => {
   });
 
   it("applies partial defaults", () => {
-    const result = ConfigSchema.parse({ maxConcurrentBuilders: 8 });
-    expect(result.maxConcurrentBuilders).toBe(8);
+    const result = ConfigSchema.parse({ mainBranch: "develop" });
+    expect(result.mainBranch).toBe("develop");
     expect(result.builderCommand).toBe("claude");
     expect(result.copyCommandByDefault).toBe(false);
-  });
-
-  it("rejects non-integer maxConcurrentBuilders", () => {
-    expect(() => ConfigSchema.parse({ maxConcurrentBuilders: 1.5 })).toThrow();
-  });
-
-  it("rejects maxConcurrentBuilders less than 1", () => {
-    expect(() => ConfigSchema.parse({ maxConcurrentBuilders: 0 })).toThrow();
-  });
-
-  it("rejects maxConcurrentBuilders of 0", () => {
-    expect(() => ConfigSchema.parse({ maxConcurrentBuilders: 0 })).toThrow();
   });
 
   it("rejects a non-string builderCommand", () => {
@@ -57,7 +45,6 @@ describe("DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG).toEqual({
       builderCommand: "claude",
       copyCommandByDefault: false,
-      maxConcurrentBuilders: 2,
       mainBranch: "main",
       testCommand: "npm test",
       pushOnIntegration: true,
