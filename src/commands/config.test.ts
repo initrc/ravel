@@ -48,6 +48,7 @@ describe("DEFAULT_CONFIG", () => {
       mainBranch: "main",
       testCommand: "npm test",
       pushOnIntegration: true,
+      notifyWhenDone: true,
     });
   });
 });

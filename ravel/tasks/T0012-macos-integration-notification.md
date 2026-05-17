@@ -1,7 +1,7 @@
 ---
 id: T0012
 title: Send macOS notification on integration result
-status: new
+status: done
 dependencies: []
 ---
 

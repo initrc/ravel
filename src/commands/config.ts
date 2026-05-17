@@ -8,6 +8,7 @@ export const ConfigSchema = z.object({
   mainBranch: z.string().default("main"),
   testCommand: z.string().default("npm test"),
   pushOnIntegration: z.boolean().default(true),
+  notifyWhenDone: z.boolean().default(true),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -18,6 +19,7 @@ export const DEFAULT_CONFIG: Config = {
   mainBranch: "main",
   testCommand: "npm test",
   pushOnIntegration: true,
+  notifyWhenDone: true,
 };
 
 export function readConfig(cwd: string = process.cwd()): Config {

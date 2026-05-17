@@ -9,6 +9,7 @@ import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
 import { runIntegration } from "./commands/integrate.js";
 import { requireInit, readConfig } from "./commands/config.js";
+import { notify } from "./commands/notify.js";
 import { TaskCollection } from "./models/task.js";
 import { App } from "./tui/app.js";
 import {
@@ -118,6 +119,7 @@ program
   .description("Run integration flow for a completed task")
   .action(async (taskId: string) => {
     requireInit();
+    const config = readConfig();
     try {
       await runIntegration(taskId, process.cwd(), (event) => {
         switch (event.type) {
@@ -126,16 +128,20 @@ program
             break;
           case "conflict":
             console.error(event.message);
+            notify(event, config.notifyWhenDone);
             break;
           case "test-failure":
             console.error(event.message);
             console.error(event.output);
+            notify(event, config.notifyWhenDone);
             break;
           case "error":
             console.error(event.message);
+            notify(event, config.notifyWhenDone);
             break;
           case "complete":
             console.log(`${event.taskId} integration complete`);
+            notify(event, config.notifyWhenDone);
             break;
         }
       });

@@ -10,6 +10,7 @@ import { readConfig } from "../commands/config.js";
 import { assignCommand } from "../commands/assign.js";
 import { runIntegration } from "../commands/integrate.js";
 import type { IntegrationEvent } from "../commands/integrate.js";
+import { notify } from "../commands/notify.js";
 import { generateLaunchCommand } from "../commands/prompt.js";
 import type { RavelEvent } from "../models/events.js";
 
@@ -157,24 +158,29 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     };
 
     runIntegration(taskId, projectRoot, (event: IntegrationEvent) => {
+      const config = readConfig(projectRoot);
       switch (event.type) {
         case "progress":
           addEvent(`${taskId} integration: ${event.message}`);
           break;
         case "conflict":
           addEvent(event.message);
+          notify(event, config.notifyWhenDone);
           onFinish();
           break;
         case "test-failure":
           addEvent(event.message);
+          notify(event, config.notifyWhenDone);
           onFinish();
           break;
         case "error":
           addEvent(`${event.taskId} integration error: ${event.message}`);
+          notify(event, config.notifyWhenDone);
           onFinish();
           break;
         case "complete":
           addEvent(`${event.taskId} integration complete`);
+          notify(event, config.notifyWhenDone);
           onFinish();
           break;
       }
@@ -251,6 +257,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           `mainBranch: ${config.mainBranch}`,
           `testCommand: ${config.testCommand}`,
           `pushOnIntegration: ${config.pushOnIntegration}`,
+          `notifyWhenDone: ${config.notifyWhenDone}`,
         ]);
       } catch (err) {
         setCommandOutput([`Error: ${(err as Error).message}`]);
