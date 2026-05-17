@@ -21,7 +21,9 @@ export function Column({ title, tasks, accent }: ColumnProps) {
       </Text>
       {tasks.length === 0 && <Text dimColor>-</Text>}
       {tasks.map((t) => (
-        <Text key={t.id}>{t.id}</Text>
+        <Box key={t.id} marginTop={1}>
+          <Text>{t.id}: {t.title}</Text>
+        </Box>
       ))}
     </Box>
   );

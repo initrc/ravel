@@ -1,7 +1,7 @@
 ---
 id: T0010
 title: Improve task column display format and spacing
-status: new
+status: done
 dependencies: []
 ---
 
