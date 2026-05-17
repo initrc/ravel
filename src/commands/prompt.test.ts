@@ -75,16 +75,18 @@ describe("generatePrompt", () => {
 // generateLaunchCommand
 // ---------------------------------------------------------------------------
 describe("generateLaunchCommand", () => {
-  it("produces cd && ravel prompt --copy && builder pipeline", () => {
+  it("produces cd project && ravel prompt --copy && cd worktree && builder pipeline", () => {
     const cmd = generateLaunchCommand(
       "T0003",
       "ravel",
+      "/home/user/project",
       "/home/user/project/.worktrees/T0003",
       "claude",
     );
     expect(cmd).toBe(
-      "cd '/home/user/project/.worktrees/T0003'" +
+      "cd '/home/user/project'" +
         " && ravel prompt T0003 --copy" +
+        " && cd '.worktrees/T0003'" +
         " && claude",
     );
   });
@@ -93,12 +95,14 @@ describe("generateLaunchCommand", () => {
     const cmd = generateLaunchCommand(
       "T0005",
       "node '/path/to/bin/ravel.js'",
+      "/tmp",
       "/tmp/worktrees/T0005",
       "codex",
     );
     expect(cmd).toBe(
-      "cd '/tmp/worktrees/T0005'" +
+      "cd '/tmp'" +
         " && node '/path/to/bin/ravel.js' prompt T0005 --copy" +
+        " && cd 'worktrees/T0005'" +
         " && codex",
     );
   });

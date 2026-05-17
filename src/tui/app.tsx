@@ -280,6 +280,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
         const launchCmd = generateLaunchCommand(
           session.taskId,
           ravelCmd,
+          projectRoot,
           worktreeAbs,
           config.builderCommand,
         );

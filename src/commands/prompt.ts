@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import * as readline from "node:readline";
 import type { Task } from "../models/task.js";
 import { readConfig, writeConfig } from "./config.js";
@@ -63,12 +64,15 @@ async function waitForKeypress(): Promise<string> {
 export function generateLaunchCommand(
   taskId: string,
   ravelCmd: string,
+  projectRoot: string,
   worktreePath: string,
   builderCommand: string,
 ): string {
+  const relWorktree = path.relative(projectRoot, worktreePath);
   return (
-    `cd '${worktreePath}'` +
+    `cd '${projectRoot}'` +
     ` && ${ravelCmd} prompt ${taskId} --copy` +
+    ` && cd '${relWorktree}'` +
     ` && ${builderCommand}`
   );
 }

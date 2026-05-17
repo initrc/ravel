@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { createElement } from "react";
 import { render } from "ink";
@@ -56,11 +55,12 @@ program
       const config = readConfig();
       const ravelCmd = isRavelOnPath()
         ? "ravel"
-        : `node '${path.join(path.dirname(fileURLToPath(import.meta.url)), "ravel.js")}'`;
+        : "node './bin/ravel.js'";
       const worktreeAbs = path.resolve(process.cwd(), session.worktreePath);
       const command = generateLaunchCommand(
         session.taskId,
         ravelCmd,
+        process.cwd(),
         worktreeAbs,
         config.builderCommand,
       );
@@ -156,7 +156,7 @@ program.action(async () => {
   requireInit();
   const ravelCmd = isRavelOnPath()
     ? "ravel"
-    : `node '${path.join(path.dirname(fileURLToPath(import.meta.url)), "ravel.js")}'`;
+    : "node './bin/ravel.js'";
   const { waitUntilExit } = render(
     createElement(App, { projectRoot: process.cwd(), ravelCmd }),
     { exitOnCtrlC: false },
