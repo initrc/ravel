@@ -1,7 +1,7 @@
 ---
 id: T0007
 title: Interactive TUI dashboard
-status: new
+status: done
 dependencies:
   - T0002
   - T0006
@@ -24,7 +24,7 @@ dependencies:
 - Event log shows: task status changes, new tasks, new docs.
 - Slash command input accepts and routes commands.
 - `/help` lists available commands.
-- Clean exit on Ctrl+C or `/quit`.
+- Clean exit on Ctrl+C or `exit` or `/quit`.
 
 # Implementation Notes
 

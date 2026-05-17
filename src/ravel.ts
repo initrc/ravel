@@ -3,10 +3,13 @@ import { Command } from "commander";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { createElement } from "react";
+import { render } from "ink";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
 import { requireInit, readConfig } from "./config.js";
 import { TaskCollection } from "./task.js";
+import { App } from "./tui/app.js";
 import {
   generatePrompt,
   promptForClipboard,
@@ -119,10 +122,16 @@ program
   });
 
 // Default: launch TUI (T0007)
-program.action(() => {
+program.action(async () => {
   requireInit();
-  // T0007
-  console.log("TUI not yet implemented");
+  const ravelCmd = isRavelOnPath()
+    ? "ravel"
+    : `node '${path.join(path.dirname(fileURLToPath(import.meta.url)), "ravel.js")}'`;
+  const { waitUntilExit } = render(
+    createElement(App, { projectRoot: process.cwd(), ravelCmd }),
+    { exitOnCtrlC: false },
+  );
+  await waitUntilExit();
 });
 
 program.parse();
