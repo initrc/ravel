@@ -9,7 +9,7 @@ interface DashboardProps {
   tasks: Task[];
   collection: TaskCollection;
   events: LogEvent[];
-  commandOutput: string[];
+  commandOutput: Array<{text: string; highlight?: boolean}>;
   onCommand: (command: string) => void | Promise<void>;
 }
 

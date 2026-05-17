@@ -1,7 +1,7 @@
 ---
 id: T0016
 title: Show action-informing text at normal brightness in TUI
-status: new
+status: done
 dependencies: []
 ---
 

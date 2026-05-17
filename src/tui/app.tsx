@@ -45,7 +45,8 @@ interface AppProps {
 export function App({ projectRoot, ravelCmd }: AppProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<LogEvent[]>([]);
-  const [commandOutput, setCommandOutput] = useState<string[]>([]);
+  interface OutputLine { text: string; highlight?: boolean }
+  const [commandOutput, setCommandOutput] = useState<OutputLine[]>([]);
   const { exit } = useApp();
 
   const tasksDir = path.join(projectRoot, "ravel", "tasks");
@@ -238,12 +239,12 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
 
     if (command === "/help") {
       setCommandOutput([
-        "Available commands:",
-        "  /help            Show this help",
-        "  /config          Show current configuration",
-        "  /assign <id>     Assign a task",
-        "  /integrate <id>  Run integration flow for a completed task",
-        "  /exit or /quit   Exit the dashboard",
+        { text: "Available commands:" },
+        { text: "  /help            Show this help" },
+        { text: "  /config          Show current configuration" },
+        { text: "  /assign <id>     Assign a task" },
+        { text: "  /integrate <id>  Run integration flow for a completed task" },
+        { text: "  /exit or /quit   Exit the dashboard" },
       ]);
       return;
     }
@@ -252,16 +253,15 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       try {
         const config = readConfig(projectRoot);
         setCommandOutput([
-          `builderCommand: ${config.builderCommand}`,
-          `copyCommandByDefault: ${config.copyCommandByDefault}`,
-
-          `mainBranch: ${config.mainBranch}`,
-          `testCommand: ${config.testCommand}`,
-          `pushOnIntegration: ${config.pushOnIntegration}`,
-          `notifyWhenDone: ${config.notifyWhenDone}`,
+          { text: `builderCommand: ${config.builderCommand}` },
+          { text: `copyCommandByDefault: ${config.copyCommandByDefault}` },
+          { text: `mainBranch: ${config.mainBranch}` },
+          { text: `testCommand: ${config.testCommand}` },
+          { text: `pushOnIntegration: ${config.pushOnIntegration}` },
+          { text: `notifyWhenDone: ${config.notifyWhenDone}` },
         ]);
       } catch (err) {
-        setCommandOutput([`Error: ${(err as Error).message}`]);
+        setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
       }
       return;
     }
@@ -269,7 +269,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     if (command.startsWith("/assign")) {
       const taskId = command.split(" ")[1];
       if (!taskId) {
-        setCommandOutput(["Usage: /assign <taskId>"]);
+        setCommandOutput([{ text: "Usage: /assign <taskId>" }]);
         return;
       }
 
@@ -290,14 +290,14 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
         clipboardy.default.writeSync(launchCmd);
 
         setCommandOutput([
-          `Assigned ${taskId}: worktree at ${session.worktreePath}`,
-          `Launch command copied to clipboard:`,
-          `  ${launchCmd}`,
-          "",
-          "Paste it in a new terminal to start the builder.",
+          { text: `Assigned ${taskId}: worktree at ${session.worktreePath}` },
+          { text: `Launch command copied to clipboard:` },
+          { text: `  ${launchCmd}` },
+          { text: "" },
+          { text: "Paste it in a new terminal to start the builder.", highlight: true },
         ]);
       } catch (err) {
-        setCommandOutput([`Error: ${(err as Error).message}`]);
+        setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
       }
       return;
     }
@@ -305,16 +305,16 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     if (command.startsWith("/integrate")) {
       const taskId = command.split(" ")[1];
       if (!taskId) {
-        setCommandOutput(["Usage: /integrate <taskId>"]);
+        setCommandOutput([{ text: "Usage: /integrate <taskId>" }]);
         return;
       }
 
       integrateTask(taskId);
-      setCommandOutput([`Integration started for ${taskId}. See event log for progress.`]);
+      setCommandOutput([{ text: `Integration started for ${taskId}. See event log for progress.` }]);
       return;
     }
 
-    setCommandOutput([`Unknown command: ${command.split(" ")[0]}`]);
+    setCommandOutput([{ text: `Unknown command: ${command.split(" ")[0]}` }]);
   };
 
   // Re-build collection for TaskColumns each render

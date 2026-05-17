@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Box, Text, useInput } from "ink";
 
+interface OutputLine {
+  text: string;
+  highlight?: boolean;
+}
+
 interface CommandInputProps {
-  output: string[];
+  output: OutputLine[];
   onCommand: (command: string) => void | Promise<void>;
 }
 
@@ -39,8 +44,8 @@ export function CommandInput({ output, onCommand }: CommandInputProps) {
       {output.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
           {output.map((line, i) => (
-            <Text key={i} dimColor>
-              {line}
+            <Text key={i} dimColor={!line.highlight}>
+              {line.text}
             </Text>
           ))}
         </Box>
