@@ -94,6 +94,33 @@ async function pickAgentInteractive(): Promise<string> {
   return pickAgent(available);
 }
 
+function detectTestCommand(cwd: string): string {
+  const pkgPath = path.join(cwd, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    return "";
+  }
+
+  let pkg: Record<string, unknown>;
+  try {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as Record<string, unknown>;
+  } catch {
+    return "";
+  }
+
+  const scripts = pkg.scripts as Record<string, string> | undefined;
+  if (scripts && typeof scripts.test === "string") {
+    console.log(
+      "Detected npm test script. testCommand runs your test suite before merging. Set to 'npm test'.",
+    );
+    return "npm test";
+  }
+
+  console.log(
+    "No npm test script detected. testCommand runs your test suite before merging. Set it in .ravel/config.json.",
+  );
+  return "";
+}
+
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
@@ -175,7 +202,7 @@ function generateAgentsMd(cwd: string, templatesDir: string): void {
 export async function initCommand(
   cwd: string = process.cwd(),
   templateDir?: string,
-  agentCommand?: string,
+  agent?: string,
 ): Promise<void> {
   const templatesDir = templateDir ?? defaultTemplateDir;
   const configPath = path.join(cwd, ".ravel", "config.json");
@@ -204,15 +231,16 @@ export async function initCommand(
   }
 
   // Pick agent command
-  let chosenAgent: string;
-  if (agentCommand !== undefined) {
-    chosenAgent = agentCommand;
-  } else {
-    chosenAgent = await pickAgentInteractive();
+  let agentCommand = agent;
+  if (agentCommand === undefined) {
+    agentCommand = await pickAgentInteractive();
   }
 
-  // Generate .ravel/config.json with defaults
-  const config = { ...DEFAULT_CONFIG, agentCommand: chosenAgent };
+  // Detect test command
+  const testCommand = detectTestCommand(cwd);
+
+  // Generate .ravel/config.json
+  const config = { ...DEFAULT_CONFIG, agentCommand, testCommand };
   writeIfMissing(configPath, JSON.stringify(config, null, 2) + "\n");
 
   // Add entries to .gitignore

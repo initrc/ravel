@@ -1,7 +1,7 @@
 ---
 id: T0023
 title: Detect npm test command during init and set as default
-status: new
+status: done
 dependencies:
   - T0022
 ---

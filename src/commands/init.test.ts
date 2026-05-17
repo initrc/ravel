@@ -178,4 +178,49 @@ describe("initCommand", () => {
       expect(content).not.toContain("Old conventions content");
     });
   });
+
+  describe("test command detection", () => {
+    it("sets testCommand to 'npm test' when package.json has a test script", async () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "package.json"),
+        JSON.stringify({ scripts: { test: "jest" } }),
+      );
+
+      await initCommand(tmpDir, templatesDir, "claude");
+
+      const config = JSON.parse(
+        fs.readFileSync(path.join(tmpDir, ".ravel", "config.json"), "utf-8"),
+      ) as Record<string, unknown>;
+      expect(config.testCommand).toBe("npm test");
+      expect(consoleLog).toHaveBeenCalledWith(
+        "Detected npm test script. testCommand runs your test suite before merging. Set to 'npm test'.",
+      );
+    });
+
+    it("leaves testCommand empty when package.json has no test script", async () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "package.json"),
+        JSON.stringify({ scripts: { build: "tsc" } }),
+      );
+
+      await initCommand(tmpDir, templatesDir, "claude");
+
+      const config = JSON.parse(
+        fs.readFileSync(path.join(tmpDir, ".ravel", "config.json"), "utf-8"),
+      ) as Record<string, unknown>;
+      expect(config.testCommand).toBe("");
+      expect(consoleLog).toHaveBeenCalledWith(
+        "No npm test script detected. testCommand runs your test suite before merging. Set it in .ravel/config.json.",
+      );
+    });
+
+    it("leaves testCommand empty when no package.json exists", async () => {
+      await initCommand(tmpDir, templatesDir, "claude");
+
+      const config = JSON.parse(
+        fs.readFileSync(path.join(tmpDir, ".ravel", "config.json"), "utf-8"),
+      ) as Record<string, unknown>;
+      expect(config.testCommand).toBe("");
+    });
+  });
 });
