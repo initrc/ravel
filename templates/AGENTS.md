@@ -9,3 +9,5 @@ ravel/docs/ravel-conventions.md
 ```
 
 Follow those conventions strictly.
+
+When the user says "create tasks", "add a task", or similar: create task files in `ravel/tasks/` following the format in the conventions doc.
