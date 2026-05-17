@@ -199,16 +199,19 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
         case "conflict":
           addEvent(event.message);
           notify(event, config.notifyWhenDone);
+          integratedRef.current.delete(taskId);
           onFinish();
           break;
         case "test-failure":
           addEvent(event.message);
           notify(event, config.notifyWhenDone);
+          integratedRef.current.delete(taskId);
           onFinish();
           break;
         case "error":
           addEvent(`${event.taskId} integration error: ${event.message}`);
           notify(event, config.notifyWhenDone);
+          integratedRef.current.delete(taskId);
           onFinish();
           break;
         case "complete":
@@ -219,6 +222,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       }
     }).catch((err) => {
       addEvent(`${taskId} integration error: ${(err as Error).message}`);
+      integratedRef.current.delete(taskId);
       onFinish();
     });
   };
