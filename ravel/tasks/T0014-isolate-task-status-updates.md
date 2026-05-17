@@ -1,7 +1,7 @@
 ---
 id: T0014
 title: Isolate task status updates per session
-status: new
+status: done
 dependencies: []
 ---
 

@@ -236,12 +236,12 @@ export class RavelWatcher extends EventEmitter {
     });
 
     watcher.on("add", (filePath: string) => {
-      if (filePath.endsWith(".md")) {
+      if (filePath.endsWith(".md") && this.isAssignedTask(filePath, taskId)) {
         this.onTaskFileEvent(filePath);
       }
     });
     watcher.on("change", (filePath: string) => {
-      if (filePath.endsWith(".md")) {
+      if (filePath.endsWith(".md") && this.isAssignedTask(filePath, taskId)) {
         this.onTaskFileEvent(filePath);
       }
     });
@@ -258,6 +258,15 @@ export class RavelWatcher extends EventEmitter {
     if (watcher) {
       await watcher.close();
       this.worktreeWatchers.delete(taskId);
+    }
+  }
+
+  private isAssignedTask(filePath: string, taskId: string): boolean {
+    try {
+      const task = parseTask(filePath);
+      return task.id === taskId;
+    } catch {
+      return false;
     }
   }
 

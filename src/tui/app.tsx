@@ -90,6 +90,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           if (!wtEntry.isFile() || !wtEntry.name.endsWith(".md")) continue;
           try {
             const wtTask = parseTask(path.join(wtTasksDir, wtEntry.name));
+            if (wtTask.id !== taskId) continue;
             const mainTask = collection.get(wtTask.id);
             if (mainTask && mainTask.status !== wtTask.status) {
               mainTask.status = wtTask.status;
