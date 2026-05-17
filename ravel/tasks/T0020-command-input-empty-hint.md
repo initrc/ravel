@@ -1,7 +1,7 @@
 ---
 id: T0020
 title: Show navigation hint in CommandInput when empty
-status: new
+status: done
 dependencies: []
 ---
 
@@ -16,7 +16,7 @@ The hint should cover:
 
 # Acceptance
 
-- When `output` is empty, a dimmed hint line is shown above the `> ` prompt.
+- When the input is empty, a dimmed hint is shown after the `> ` prompt in the input area.
 - The hint uses arrow symbols: `↑` and `↓`.
 - Hint text is concise and dimmed, consistent with the rest of the TUI styling.
 - `npm run build` succeeds.
@@ -24,7 +24,6 @@ The hint should cover:
 
 # Implementation Notes
 
-- The output display block is gated by `output.length > 0` at `CommandInput.tsx` line 44.
-- Instead of hiding the output area when empty, render a single dimmed hint line.
+- The hint is shown in the input area after the `> ` prompt, replacing the input text when the input is empty.
 - Use `dimColor` (from `app.tsx` line 16) for the hint styling, matching how status lines are dimmed.
 - The event log scroll keys are handled in `EventLog.tsx` — confirm the hint matches actual behavior.
