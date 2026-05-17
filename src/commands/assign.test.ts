@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { execFile } from "node:child_process";
@@ -13,6 +13,30 @@ async function git(args: string[], cwd: string): Promise<string> {
   const { stdout } = await execFileAsync("git", args, { cwd });
   return stdout;
 }
+
+// A pre-built git repo template. Created once and copied for each test, which
+// is faster than running git init + initial commit in every beforeEach.
+let templateDir: string;
+
+beforeAll(async () => {
+  templateDir = fs.mkdtempSync(path.join("/tmp", "ravel-assign-template-"));
+  await git(["init"], templateDir);
+  await git(
+    ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "--allow-empty", "-m", "initial"],
+    templateDir,
+  );
+  fs.mkdirSync(path.join(templateDir, ".ravel", "sessions"), { recursive: true });
+  fs.mkdirSync(path.join(templateDir, ".ravel", "logs"), { recursive: true });
+  fs.mkdirSync(path.join(templateDir, "ravel", "tasks"), { recursive: true });
+  fs.writeFileSync(
+    path.join(templateDir, ".ravel", "config.json"),
+    JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n",
+  );
+});
+
+afterAll(() => {
+  fs.rmSync(templateDir, { recursive: true, force: true });
+});
 
 // ---------------------------------------------------------------------------
 // deriveBranchName
@@ -48,36 +72,10 @@ describe("assignCommand", () => {
   let tmpDir: string;
   let tasksDir: string;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join("/tmp", "ravel-assign-test-"));
-
-    // Init a git repo
-    await git(["init"], tmpDir);
-    await git(
-      [
-        "-c",
-        "user.name=test",
-        "-c",
-        "user.email=test@test.com",
-        "commit",
-        "--allow-empty",
-        "-m",
-        "initial",
-      ],
-      tmpDir,
-    );
-
-    // Create Ravel project structure
-    fs.mkdirSync(path.join(tmpDir, ".ravel", "sessions"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".ravel", "logs"), { recursive: true });
+    fs.cpSync(templateDir, tmpDir, { recursive: true });
     tasksDir = path.join(tmpDir, "ravel", "tasks");
-    fs.mkdirSync(tasksDir, { recursive: true });
-
-    // Write config
-    fs.writeFileSync(
-      path.join(tmpDir, ".ravel", "config.json"),
-      JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n",
-    );
   });
 
   afterEach(() => {
@@ -100,6 +98,7 @@ describe("assignCommand", () => {
       status: string;
       dependencies: string[];
     }> = {},
+    commit = true,
   ): Promise<string> {
     const filename = `${id}-${slug}.md`;
     const fm: Record<string, unknown> = {
@@ -113,9 +112,9 @@ describe("assignCommand", () => {
       .join("\n");
     const filePath = path.join(tasksDir, filename);
     fs.writeFileSync(filePath, `---\n${yaml}\n---\nBody for ${id}`);
-    // Commit so the file is included in worktree checkouts.
-    // In production, task files are always committed on main.
-    await commitAll(`add ${filename}`);
+    if (commit) {
+      await commitAll(`add ${filename}`);
+    }
     return filePath;
   }
 
@@ -194,21 +193,21 @@ describe("assignCommand", () => {
 
   describe("status validation", () => {
     it("rejects assignment when task is already in-progress", async () => {
-      await writeTask("T0020", "git-worktree", { status: "in-progress" });
+      await writeTask("T0020", "git-worktree", { status: "in-progress" }, false);
       await expect(assignCommand("T0020", tmpDir)).rejects.toThrow(
         "already in-progress",
       );
     });
 
     it("rejects assignment when task is already done", async () => {
-      await writeTask("T0021", "git-worktree", { status: "done" });
+      await writeTask("T0021", "git-worktree", { status: "done" }, false);
       await expect(assignCommand("T0021", tmpDir)).rejects.toThrow(
         "already done",
       );
     });
 
     it("rejects assignment when task is in review", async () => {
-      await writeTask("T0022", "git-worktree", { status: "review" });
+      await writeTask("T0022", "git-worktree", { status: "review" }, false);
       await expect(assignCommand("T0022", tmpDir)).rejects.toThrow(
         "already review",
       );
@@ -219,9 +218,9 @@ describe("assignCommand", () => {
     it("rejects assignment when a dependency is not done", async () => {
       await writeTask("T0030", "target", {
         dependencies: ["T0031", "T0032"],
-      });
-      await writeTask("T0031", "dep-one", { status: "done" });
-      await writeTask("T0032", "dep-two", { status: "in-progress" });
+      }, false);
+      await writeTask("T0031", "dep-one", { status: "done" }, false);
+      await writeTask("T0032", "dep-two", { status: "in-progress" }, false);
 
       await expect(assignCommand("T0030", tmpDir)).rejects.toThrow(
         "is blocked. Depends on: T0032 (in-progress)",
@@ -231,9 +230,9 @@ describe("assignCommand", () => {
     it("rejects assignment when multiple dependencies are not done", async () => {
       await writeTask("T0033", "target", {
         dependencies: ["T0034", "T0035"],
-      });
-      await writeTask("T0034", "dep-one", { status: "new" });
-      await writeTask("T0035", "dep-two", { status: "new" });
+      }, false);
+      await writeTask("T0034", "dep-one", { status: "new" }, false);
+      await writeTask("T0035", "dep-two", { status: "new" }, false);
 
       await expect(assignCommand("T0033", tmpDir)).rejects.toThrow(
         "is blocked. Depends on: T0034 (new), T0035 (new)",
@@ -260,7 +259,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - session file", () => {
     it("throws when session file already exists", async () => {
-      await writeTask("T0040", "git-worktree");
+      await writeTask("T0040", "git-worktree", {}, false);
 
       // Simulate a pre-existing session
       writeSession(tmpDir, {
@@ -277,7 +276,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - stale worktree", () => {
     it("throws when worktree path already exists in git worktree list", async () => {
-      await writeTask("T0050", "git-worktree");
+      await writeTask("T0050", "git-worktree", {}, false);
 
       // Create a stale worktree manually
       await git(["branch", "old-branch", "HEAD"], tmpDir);
@@ -291,7 +290,7 @@ describe("assignCommand", () => {
 
   describe("duplicate prevention - stale branch", () => {
     it("throws when branch already exists (without worktree)", async () => {
-      await writeTask("T0060", "git-worktree");
+      await writeTask("T0060", "git-worktree", {}, false);
 
       // Create just the branch, no worktree
       await git(["branch", "T0060-git-worktree", "HEAD"], tmpDir);
@@ -310,33 +309,10 @@ describe("cleanupWorktree", () => {
   let tmpDir: string;
   let tasksDir: string;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join("/tmp", "ravel-cleanup-test-"));
-
-    await git(["init"], tmpDir);
-    await git(
-      [
-        "-c",
-        "user.name=test",
-        "-c",
-        "user.email=test@test.com",
-        "commit",
-        "--allow-empty",
-        "-m",
-        "initial",
-      ],
-      tmpDir,
-    );
-
-    fs.mkdirSync(path.join(tmpDir, ".ravel", "sessions"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".ravel", "logs"), { recursive: true });
+    fs.cpSync(templateDir, tmpDir, { recursive: true });
     tasksDir = path.join(tmpDir, "ravel", "tasks");
-    fs.mkdirSync(tasksDir, { recursive: true });
-
-    fs.writeFileSync(
-      path.join(tmpDir, ".ravel", "config.json"),
-      JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n",
-    );
   });
 
   afterEach(() => {
