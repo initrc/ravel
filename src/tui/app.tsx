@@ -19,7 +19,7 @@ export interface LogEvent {
   message: string;
 }
 
-function formatEvent(event: RavelEvent): string {
+export function formatEvent(event: RavelEvent): string {
   switch (event.type) {
     case "task-status-changed":
       if (event.newStatus === "review") {
@@ -36,6 +36,37 @@ function formatEvent(event: RavelEvent): string {
 }
 
 const MAX_EVENTS = 100;
+
+export type ParsedCommand =
+  | { type: "exit" }
+  | { type: "help" }
+  | { type: "config" }
+  | { type: "assign"; taskId: string }
+  | { type: "integrate"; taskId: string }
+  | { type: "unknown"; raw: string };
+
+export function parseCommand(command: string): ParsedCommand {
+  if (command === "/exit" || command === "/quit") return { type: "exit" };
+  if (command === "/help") return { type: "help" };
+  if (command === "/config") return { type: "config" };
+
+  if (command.startsWith("/assign")) {
+    const parts = command.trim().split(/\s+/);
+    const taskId = parts[1];
+    if (taskId) return { type: "assign", taskId };
+    return { type: "unknown", raw: parts[0] };
+  }
+
+  if (command.startsWith("/integrate")) {
+    const parts = command.trim().split(/\s+/);
+    const taskId = parts[1];
+    if (taskId) return { type: "integrate", taskId };
+    return { type: "unknown", raw: parts[0] };
+  }
+
+  const raw = command.trim().split(/\s+/)[0];
+  return { type: "unknown", raw };
+}
 
 interface AppProps {
   projectRoot: string;
@@ -232,88 +263,79 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
   });
 
   const handleCommand = async (command: string) => {
-    if (command === "/exit" || command === "/quit") {
-      exit();
-      return;
-    }
+    const parsed = parseCommand(command);
 
-    if (command === "/help") {
-      setCommandOutput([
-        { text: "Available commands:" },
-        { text: "  /help            Show this help" },
-        { text: "  /config          Show current configuration" },
-        { text: "  /assign <id>     Assign a task" },
-        { text: "  /integrate <id>  Run integration flow for a completed task" },
-        { text: "  /exit or /quit   Exit the dashboard" },
-      ]);
-      return;
-    }
+    switch (parsed.type) {
+      case "exit":
+        exit();
+        return;
 
-    if (command === "/config") {
-      try {
-        const config = readConfig(projectRoot);
+      case "help":
         setCommandOutput([
-          { text: `builderCommand: ${config.builderCommand}` },
-          { text: `copyCommandByDefault: ${config.copyCommandByDefault}` },
-          { text: `mainBranch: ${config.mainBranch}` },
-          { text: `testCommand: ${config.testCommand}` },
-          { text: `notifyWhenDone: ${config.notifyWhenDone}` },
+          { text: "Available commands:" },
+          { text: "  /help            Show this help" },
+          { text: "  /config          Show current configuration" },
+          { text: "  /assign <id>     Assign a task" },
+          { text: "  /integrate <id>  Run integration flow for a completed task" },
+          { text: "  /exit or /quit   Exit the dashboard" },
         ]);
-      } catch (err) {
-        setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
-      }
-      return;
-    }
+        return;
 
-    if (command.startsWith("/assign")) {
-      const taskId = command.split(" ")[1];
-      if (!taskId) {
-        setCommandOutput([{ text: "Usage: /assign <taskId>" }]);
+      case "config":
+        try {
+          const config = readConfig(projectRoot);
+          setCommandOutput([
+            { text: `builderCommand: ${config.builderCommand}` },
+            { text: `copyCommandByDefault: ${config.copyCommandByDefault}` },
+            { text: `mainBranch: ${config.mainBranch}` },
+            { text: `testCommand: ${config.testCommand}` },
+            { text: `notifyWhenDone: ${config.notifyWhenDone}` },
+          ]);
+        } catch (err) {
+          setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
+        }
+        return;
+
+      case "assign": {
+        try {
+          const { session } = await assignCommand(parsed.taskId, projectRoot);
+          const config = readConfig(projectRoot);
+          const worktreeAbs = path.resolve(projectRoot, session.worktreePath);
+          const launchCmd = generateLaunchCommand(
+            session.taskId,
+            ravelCmd,
+            projectRoot,
+            worktreeAbs,
+            config.builderCommand,
+          );
+
+          // Auto-copy since TUI owns the terminal (no interactive prompt)
+          const clipboardy = await import("clipboardy");
+          clipboardy.default.writeSync(launchCmd);
+
+          setCommandOutput([
+            { text: `Assigned ${parsed.taskId}: worktree at ${session.worktreePath}` },
+            { text: `Launch command copied to clipboard:` },
+            { text: `  ${launchCmd}` },
+            { text: "" },
+            { text: "Paste it in a new terminal to start the builder.", highlight: true },
+          ]);
+        } catch (err) {
+          setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
+        }
         return;
       }
 
-      try {
-        const { session } = await assignCommand(taskId, projectRoot);
-        const config = readConfig(projectRoot);
-        const worktreeAbs = path.resolve(projectRoot, session.worktreePath);
-        const launchCmd = generateLaunchCommand(
-          session.taskId,
-          ravelCmd,
-          projectRoot,
-          worktreeAbs,
-          config.builderCommand,
-        );
-
-        // Auto-copy since TUI owns the terminal (no interactive prompt)
-        const clipboardy = await import("clipboardy");
-        clipboardy.default.writeSync(launchCmd);
-
-        setCommandOutput([
-          { text: `Assigned ${taskId}: worktree at ${session.worktreePath}` },
-          { text: `Launch command copied to clipboard:` },
-          { text: `  ${launchCmd}` },
-          { text: "" },
-          { text: "Paste it in a new terminal to start the builder.", highlight: true },
-        ]);
-      } catch (err) {
-        setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
-      }
-      return;
-    }
-
-    if (command.startsWith("/integrate")) {
-      const taskId = command.split(" ")[1];
-      if (!taskId) {
-        setCommandOutput([{ text: "Usage: /integrate <taskId>" }]);
+      case "integrate": {
+        integrateTask(parsed.taskId);
+        setCommandOutput([{ text: `Integration started for ${parsed.taskId}. See event log for progress.` }]);
         return;
       }
 
-      integrateTask(taskId);
-      setCommandOutput([{ text: `Integration started for ${taskId}. See event log for progress.` }]);
-      return;
+      case "unknown":
+        setCommandOutput([{ text: `Unknown command: ${parsed.raw}` }]);
+        return;
     }
-
-    setCommandOutput([{ text: `Unknown command: ${command.split(" ")[0]}` }]);
   };
 
   // Re-build collection for TaskColumns each render

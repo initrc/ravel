@@ -11,32 +11,59 @@ interface CommandInputProps {
   onCommand: (command: string) => void | Promise<void>;
 }
 
+export interface KeyLike {
+  return?: boolean;
+  backspace?: boolean;
+  delete?: boolean;
+  tab?: boolean;
+  upArrow?: boolean;
+  downArrow?: boolean;
+  leftArrow?: boolean;
+  rightArrow?: boolean;
+  ctrl?: boolean;
+  meta?: boolean;
+  shift?: boolean;
+}
+
+export type InputAction =
+  | { type: "submit"; value: string }
+  | { type: "clear" }
+  | { type: "none" };
+
+export function reduceInput(
+  currentInput: string,
+  char: string,
+  key: KeyLike,
+): { input: string; action: InputAction } {
+  if (key.return) {
+    const trimmed = currentInput.trim();
+    if (trimmed) return { input: "", action: { type: "submit", value: trimmed } };
+    return { input: currentInput, action: { type: "none" } };
+  }
+
+  if (key.backspace || key.delete) {
+    return { input: currentInput.slice(0, -1), action: { type: "none" } };
+  }
+
+  // Ignore special keys (arrows, function keys, etc.)
+  if (char.length === 0) return { input: currentInput, action: { type: "none" } };
+
+  // Ignore tab
+  if (key.tab) return { input: currentInput, action: { type: "none" } };
+
+  // Accept printable characters
+  return { input: currentInput + char, action: { type: "none" } };
+}
+
 export function CommandInput({ output, onCommand }: CommandInputProps) {
   const [input, setInput] = useState("");
 
   useInput((char, key) => {
-    if (key.return) {
-      const trimmed = input.trim();
-      if (trimmed) {
-        void onCommand(trimmed);
-        setInput("");
-      }
-      return;
+    const result = reduceInput(input, char, key);
+    if (result.action.type === "submit") {
+      void onCommand(result.action.value);
     }
-
-    if (key.backspace || key.delete) {
-      setInput((prev) => prev.slice(0, -1));
-      return;
-    }
-
-    // Ignore special keys (arrows, function keys, etc.)
-    if (char.length === 0) return;
-
-    // Ignore tab
-    if (key.tab) return;
-
-    // Accept printable characters
-    setInput((prev) => prev + char);
+    setInput(result.input);
   });
 
   return (

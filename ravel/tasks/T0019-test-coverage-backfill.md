@@ -1,7 +1,7 @@
 ---
 id: T0019
 title: Backfill tests for untested source files under src/
-status: new
+status: done
 dependencies: []
 ---
 
@@ -41,6 +41,6 @@ Audit `src/` and its subdirectories for source files that lack corresponding tes
 - Existing tests use vitest with `describe`/`it` blocks and live in `src/**/*.test.ts`.
 - `git.ts` has functions like `branchFromFilename`, `taskIdFromBranch` — these are pure and easy to test.
 - `session.ts` reads/writes JSON session files — test with tmp directories.
-- `integrate.ts` is the most complex untested file — test with a real git repo (like the assign tests do).
+- `integrate.ts` is the most complex untested file — tested with mocked git, config, session, and task modules rather than a real git repo. Rationale: the integration flow has 10+ git operations with error handling branches (conflict vs non-conflict rebase errors, stash-pop failure, worktree-remove failure) that are impractical or impossible to trigger reliably with real git. Mocks make every code path reachable and keep the tests focused on orchestration logic (which events fire, which errors are fatal, whether cleanup proceeds). The polling-for-commit test uses `vi.advanceTimersByTimeAsync` to avoid real `setTimeout` waits, cutting test time from ~500ms to ~7ms.
 - For `app.tsx`, extract command parsing/handling logic into testable pure functions.
 - `CommandInput.tsx` input handling logic can be tested by extracting the keypress handler.

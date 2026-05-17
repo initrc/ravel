@@ -99,11 +99,11 @@ export class RavelWatcher extends EventEmitter {
       }
     });
 
-    this.mainWatcher.on("unlink", async (filePath: string) => {
+    this.mainWatcher.on("unlink", (filePath: string) => {
       if (filePath.startsWith(sessionsDir) && filePath.endsWith(".json")) {
         const taskId = path.basename(filePath).replace(/\.json$/, "");
         this.knownSessions.delete(taskId);
-        await this.stopWatchingWorktree(taskId);
+        void this.stopWatchingWorktree(taskId);
       }
     });
 
