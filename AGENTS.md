@@ -73,10 +73,10 @@ Run these from the project root:
 | Command | What it does |
 |---|---|
 | `npm run build` | Compile TypeScript (`tsc`) and copy templates into `bin/` |
-| `npm test` | Run the full test suite (`vitest run`). Always run this, not a subset — a change that passes its own test file can still break another. |
+| `npm run ravel <command>` | Run the Ravel CLI from the build output |
 | `npm run lint` | Check for lint errors (`eslint .`) |
 | `npm run lint:fix` | Auto-fix lint errors where possible |
-| `node bin/ravel.js <command>` | Run the Ravel CLI from the build output |
+| `npm test` | Run the full test suite (`vitest run`). Always run this, not a subset — a change that passes its own test file can still break another. |
 
 When the implementation is done, always run:
 
