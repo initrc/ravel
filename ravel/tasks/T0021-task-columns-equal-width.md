@@ -1,7 +1,7 @@
 ---
 id: T0021
 title: Make TaskColumns share equal width
-status: new
+status: done
 dependencies: []
 ---
 

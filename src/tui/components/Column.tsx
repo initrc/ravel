@@ -15,6 +15,7 @@ export function Column({ title, tasks, accent }: ColumnProps) {
       borderColor={accent}
       paddingX={1}
       flexGrow={1}
+      flexBasis={0}
     >
       <Text bold color={accent}>
         {title}
