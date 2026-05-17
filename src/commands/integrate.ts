@@ -17,15 +17,6 @@ export type IntegrationEvent =
 
 export type IntegrationCallback = (event: IntegrationEvent) => void;
 
-async function hasRemote(cwd: string): Promise<boolean> {
-  try {
-    await git(["remote", "get-url", "origin"], cwd);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function hasUncommittedChanges(cwd: string): Promise<boolean> {
   const out = await git(["status", "--porcelain"], cwd);
   return out.trim().length > 0;
@@ -46,7 +37,6 @@ export async function runIntegration(
   const branch = session.branch;
   const mainBranch = config.mainBranch;
   const taskFilePath = path.join(projectRoot, "ravel", "tasks", `${branch}.md`);
-  const originExists = await hasRemote(worktreeDir);
 
   // 1. Stash uncommitted changes on main so they don't interfere with the rebase.
   const dirty = await hasUncommittedChanges(projectRoot);
@@ -97,7 +87,7 @@ export async function runIntegration(
     await git(["rebase", mainBranch], worktreeDir);
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? "";
-    const message = (err as Error).message;
+    const message = String(err);
     const isConflict =
       stderr.includes("CONFLICT") ||
       message.includes("CONFLICT") ||
@@ -127,7 +117,7 @@ export async function runIntegration(
     }
 
     // Non-conflict error.
-    throw new Error(`git rebase ${mainBranch} failed: ${message}`);
+    throw new Error(`git rebase ${mainBranch} failed`, { cause: err });
   }
 
   // 4. Run test command (skipped when empty).
@@ -170,20 +160,19 @@ export async function runIntegration(
     });
   }
 
-  // 5. Push the rebased branch.
-  if (originExists && config.pushOnIntegration) {
-    onEvent({
-      type: "progress",
-      taskId,
-      message: `Pushing ${branch} to origin...`,
-    });
-    try {
-      await git(["push", "origin", branch], worktreeDir);
-    } catch (err) {
-      throw new Error(`git push origin ${branch} failed: ${(err as Error).message}`);
-    }
-    onEvent({ type: "progress", taskId, message: "Pushed" });
+  // 5. Fast-forward main to the rebased feature branch.
+  onEvent({
+    type: "progress",
+    taskId,
+    message: `Merging ${branch} into ${mainBranch}...`,
+  });
+  try {
+    await git(["checkout", mainBranch], projectRoot);
+    await git(["merge", "--ff-only", branch], projectRoot);
+  } catch (err) {
+    throw new Error(`git merge ${branch} into ${mainBranch} failed`, { cause: err });
   }
+  onEvent({ type: "progress", taskId, message: "Merged" });
 
   // 6. Restore stashed changes.
   if (dirty) {
@@ -198,7 +187,7 @@ export async function runIntegration(
       onEvent({
         type: "error",
         taskId,
-        message: `Failed to restore stashed changes: ${(popErr as Error).message}. Your changes are still in the stash.`,
+        message: `Failed to restore stashed changes: ${String(popErr)}. Your changes are still in the stash.`,
       });
     }
   }
@@ -213,7 +202,7 @@ export async function runIntegration(
   try {
     await git(["worktree", "remove", "--force", session.worktreePath], projectRoot);
   } catch (err) {
-    throw new Error(`git worktree remove failed: ${(err as Error).message}`);
+    throw new Error(`git worktree remove failed`, { cause: err });
   }
 
   try {

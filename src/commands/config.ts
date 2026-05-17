@@ -7,7 +7,6 @@ export const ConfigSchema = z.object({
   copyCommandByDefault: z.boolean().default(false),
   mainBranch: z.string().default("main"),
   testCommand: z.string().default("npm test"),
-  pushOnIntegration: z.boolean().default(true),
   notifyWhenDone: z.boolean().default(true),
 });
 
@@ -18,7 +17,6 @@ export const DEFAULT_CONFIG: Config = {
   copyCommandByDefault: false,
   mainBranch: "main",
   testCommand: "npm test",
-  pushOnIntegration: true,
   notifyWhenDone: true,
 };
 

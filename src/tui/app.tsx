@@ -257,7 +257,6 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           { text: `copyCommandByDefault: ${config.copyCommandByDefault}` },
           { text: `mainBranch: ${config.mainBranch}` },
           { text: `testCommand: ${config.testCommand}` },
-          { text: `pushOnIntegration: ${config.pushOnIntegration}` },
           { text: `notifyWhenDone: ${config.notifyWhenDone}` },
         ]);
       } catch (err) {

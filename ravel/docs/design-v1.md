@@ -491,7 +491,7 @@ Ravel performs:
 1. Stash uncommitted changes on the main branch (if any), so they don't interfere with the rebase. Logged.
 2. Rebase the worktree branch onto the local `main` branch.
 3. Run tests (configurable `testCommand`; skipped when empty).
-4. Push rebased branch to remote (skipped when `pushOnIntegration` is false or no remote exists).
+4. Fast-forward the local `main` branch to the rebased feature branch (`git checkout main && git merge --ff-only <branch>`).
 5. Restore stashed changes via `git stash pop`. Logged. On failure (conflict, test failure, error), the stash is NOT popped — the user is told to pop it manually once the issue is resolved.
 6. Clean up worktree and branch.
 7. Remove session file.
@@ -500,13 +500,6 @@ Ravel performs:
 ### Rebase target
 
 Ravel always rebases onto the local `main` branch. It never fetches `origin/main`. This keeps integration local-first and avoids triggering remote PR prompts.
-
-### Remote vs local-only repos
-
-Ravel works with or without a git remote:
-
-- **Remote exists**: pushes the task branch when `pushOnIntegration` is true.
-- **No remote**: skips push entirely.
 
 ### Rebase Conflicts
 
@@ -539,14 +532,11 @@ Example:
   "copyCommandByDefault": false,
 
   "mainBranch": "main",
-  "testCommand": "npm test",
-  "pushOnIntegration": true
+  "testCommand": "npm test"
 }
 ```
 
 `testCommand` may be set to `""` to skip tests during integration.
-
-`pushOnIntegration` may be set to `false` to skip the push step.
 
 `mainBranch` sets the branch to rebase onto (defaults to `main`).
 

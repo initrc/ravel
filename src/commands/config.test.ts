@@ -47,7 +47,6 @@ describe("DEFAULT_CONFIG", () => {
       copyCommandByDefault: false,
       mainBranch: "main",
       testCommand: "npm test",
-      pushOnIntegration: true,
       notifyWhenDone: true,
     });
   });
