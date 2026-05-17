@@ -96,14 +96,14 @@ Task body structure:
 ---
 
 ## Dependency Rules
-
-A task is blocked when any dependency is not `done`.
-
-Blocked state is computed and should never be written to the task file.
+ 
+- When creating a new task, do not add any task that is done to the dependencies list.
+- A task is blocked when any dependency is not `done`.
+- Blocked state is computed and should never be written to the task file.
 
 ---
 
-## Builder Workflow
+## Implementation Workflow
 
 When implementing a task:
 
