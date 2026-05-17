@@ -48,7 +48,7 @@ describe("RavelWatcher", () => {
 
   beforeEach(async () => {
     // Allow OS to release native watcher resources from the previous test
-    await sleep(200);
+    await sleep(50);
     root = fs.mkdtempSync(path.join(os.tmpdir(), "ravel-watcher-test-"));
     fs.mkdirSync(path.join(root, "ravel", "tasks"), { recursive: true });
     fs.mkdirSync(path.join(root, "ravel", "docs"), { recursive: true });

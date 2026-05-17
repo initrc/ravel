@@ -25,7 +25,7 @@ export class RavelWatcher extends EventEmitter {
 
   constructor(projectRoot: string) {
     super();
-    this.projectRoot = projectRoot;
+    this.projectRoot = fs.realpathSync(projectRoot);
   }
 
   async start(): Promise<void> {
@@ -106,6 +106,13 @@ export class RavelWatcher extends EventEmitter {
         await this.stopWatchingWorktree(taskId);
       }
     });
+
+    // On macOS, the underlying FSEvents stream may not be fully initialized
+    // when chokidar emits "ready". Give it a brief moment to stabilize so
+    // that file writes immediately after start() are not missed.
+    if (process.platform === "darwin") {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
   }
 
   async stop(): Promise<void> {
