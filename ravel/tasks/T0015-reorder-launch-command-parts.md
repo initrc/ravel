@@ -1,7 +1,7 @@
 ---
 id: T0015
 title: Reorder launch command parts in assign output
-status: new
+status: done
 dependencies: []
 ---
 

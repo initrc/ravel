@@ -67,8 +67,8 @@ export function generateLaunchCommand(
   builderCommand: string,
 ): string {
   return (
-    `${ravelCmd} prompt ${taskId} --copy` +
-    ` && cd '${worktreePath}'` +
+    `cd '${worktreePath}'` +
+    ` && ${ravelCmd} prompt ${taskId} --copy` +
     ` && ${builderCommand}`
   );
 }
