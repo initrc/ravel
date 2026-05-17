@@ -83,7 +83,10 @@ describe("reduceInput", () => {
     });
 
     it("builds a command character by character", () => {
-      let state = { input: "", action: { type: "none" as const } };
+      let state: { input: string; action: import("./CommandInput.js").InputAction } = {
+        input: "",
+        action: { type: "none" },
+      };
 
       for (const ch of "/assign T0042") {
         state = reduceInput(state.input, ch, {});
