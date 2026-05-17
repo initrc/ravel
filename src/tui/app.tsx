@@ -53,6 +53,10 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
   // double-integration.
   const integratedRef = useRef<Set<string>>(new Set());
 
+  // Ensures only one integration runs at a time. Parallel integrations would
+  // race on git operations in the main repo (pull, task status updates).
+  const integratingRef = useRef(false);
+
   const addEvent = (message: string) => {
     setEvents((prev) => {
       const next = [...prev, { timestamp: new Date(), message }];
@@ -99,11 +103,58 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     setTasks(collection.list());
   };
 
+  // Scan active sessions for any task marked done that hasn't been
+  // integrated yet. Used to start the next integration after one finishes,
+  // handling the case where multiple tasks are marked done in quick succession.
+  const findNextDoneTask = (): string | null => {
+    const sessionsDir = path.join(projectRoot, ".ravel", "sessions");
+    if (!fs.existsSync(sessionsDir)) return null;
+    for (const entry of fs.readdirSync(sessionsDir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+      const taskId = entry.name.replace(/\.json$/, "");
+      if (integratedRef.current.has(taskId)) continue;
+      const session = readSession(projectRoot, taskId);
+      if (!session) continue;
+      const wtTasksDir = path.join(
+        projectRoot,
+        session.worktreePath,
+        "ravel",
+        "tasks",
+      );
+      if (!fs.existsSync(wtTasksDir)) continue;
+      for (const wtEntry of fs.readdirSync(wtTasksDir, { withFileTypes: true })) {
+        if (!wtEntry.isFile() || !wtEntry.name.endsWith(".md")) continue;
+        try {
+          const wtTask = parseTask(path.join(wtTasksDir, wtEntry.name));
+          if (wtTask.id === taskId && wtTask.status === "done") {
+            return taskId;
+          }
+        } catch {
+          // skip unparseable files
+        }
+      }
+    }
+    return null;
+  };
+
   const integrateTask = (taskId: string) => {
     if (integratedRef.current.has(taskId)) return;
 
+    // Serialize: if another integration is in progress, skip for now.
+    // findNextDoneTask will pick this task up when the current one finishes.
+    if (integratingRef.current) return;
+
+    integratingRef.current = true;
     integratedRef.current.add(taskId);
     addEvent(`${taskId} integration: starting...`);
+
+    const onFinish = () => {
+      reloadTasks();
+      integratingRef.current = false;
+      // Start the next queued integration, if any.
+      const nextId = findNextDoneTask();
+      if (nextId) integrateTask(nextId);
+    };
 
     runIntegration(taskId, projectRoot, (event: IntegrationEvent) => {
       switch (event.type) {
@@ -112,24 +163,24 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           break;
         case "conflict":
           addEvent(event.message);
-          reloadTasks();
+          onFinish();
           break;
         case "test-failure":
           addEvent(event.message);
-          reloadTasks();
+          onFinish();
           break;
         case "error":
           addEvent(`${event.taskId} integration error: ${event.message}`);
-          reloadTasks();
+          onFinish();
           break;
         case "complete":
           addEvent(`${event.taskId} integration complete`);
-          reloadTasks();
+          onFinish();
           break;
       }
     }).catch((err) => {
       addEvent(`${taskId} integration error: ${(err as Error).message}`);
-      reloadTasks();
+      onFinish();
     });
   };
 
