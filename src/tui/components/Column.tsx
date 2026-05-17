@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import type { Task } from "../../task.js";
+import type { Task } from "../../models/task.js";
 
 interface ColumnProps {
   title: string;

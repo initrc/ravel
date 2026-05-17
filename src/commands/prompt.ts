@@ -1,5 +1,5 @@
 import * as readline from "node:readline";
-import type { Task } from "./task.js";
+import type { Task } from "../models/task.js";
 import { readConfig, writeConfig } from "./config.js";
 
 // clipboardy is ESM-only; dynamic import in a CJS project

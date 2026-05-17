@@ -4,8 +4,8 @@ import * as path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { deriveBranchName, assignCommand, cleanupWorktree } from "./assign.js";
-import { readSession, writeSession } from "../session.js";
-import { DEFAULT_CONFIG } from "../config.js";
+import { readSession, writeSession } from "../models/session.js";
+import { DEFAULT_CONFIG } from "./config.js";
 
 const execFileAsync = promisify(execFile);
 

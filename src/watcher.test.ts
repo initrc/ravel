@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import { RavelWatcher } from "./watcher.js";
-import type { RavelEvent } from "./events.js";
+import type { RavelEvent } from "./models/events.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

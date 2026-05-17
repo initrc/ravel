@@ -3,11 +3,11 @@ import * as path from "node:path";
 import { useInput, useApp } from "ink";
 import { Dashboard } from "./components/Dashboard.js";
 import { RavelWatcher } from "../watcher.js";
-import { TaskCollection, type Task } from "../task.js";
-import { readConfig } from "../config.js";
+import { TaskCollection, type Task } from "../models/task.js";
+import { readConfig } from "../commands/config.js";
 import { assignCommand } from "../commands/assign.js";
-import { generateLaunchCommand } from "../prompt.js";
-import type { RavelEvent } from "../events.js";
+import { generateLaunchCommand } from "../commands/prompt.js";
+import type { RavelEvent } from "../models/events.js";
 
 export interface LogEvent {
   timestamp: Date;

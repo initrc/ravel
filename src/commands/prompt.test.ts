@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generatePrompt, generateLaunchCommand } from "./prompt.js";
-import type { Task } from "./task.js";
+import type { Task } from "../models/task.js";
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {

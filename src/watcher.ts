@@ -2,9 +2,9 @@ import { EventEmitter } from "node:events";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import chokidar, { type FSWatcher } from "chokidar";
-import { parseTask } from "./task.js";
-import { readSession } from "./session.js";
-import type { RavelEvent } from "./events.js";
+import { parseTask } from "./models/task.js";
+import { readSession } from "./models/session.js";
+import type { RavelEvent } from "./models/events.js";
 
 function readDirFiles(dir: string, ext: string): string[] {
   if (!fs.existsSync(dir)) return [];

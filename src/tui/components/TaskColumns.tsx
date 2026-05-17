@@ -1,6 +1,6 @@
 import { Box } from "ink";
 import { Column } from "./Column.js";
-import { TaskCollection, type Task } from "../../task.js";
+import { TaskCollection, type Task } from "../../models/task.js";
 
 interface TaskColumnsProps {
   tasks: Task[];

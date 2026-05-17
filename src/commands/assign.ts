@@ -2,11 +2,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { requireInit } from "../config.js";
-import { TaskCollection, updateTaskStatus } from "../task.js";
-import type { Task } from "../task.js";
-import { readSession, writeSession, deleteSession } from "../session.js";
-import type { Session } from "../session.js";
+import { requireInit } from "./config.js";
+import { TaskCollection, updateTaskStatus } from "../models/task.js";
+import type { Task } from "../models/task.js";
+import { readSession, writeSession, deleteSession } from "../models/session.js";
+import type { Session } from "../models/session.js";
 
 const execFileAsync = promisify(execFile);
 

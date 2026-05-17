@@ -7,15 +7,15 @@ import { createElement } from "react";
 import { render } from "ink";
 import { initCommand } from "./commands/init.js";
 import { assignCommand, cleanupWorktree } from "./commands/assign.js";
-import { requireInit, readConfig } from "./config.js";
-import { TaskCollection } from "./task.js";
+import { requireInit, readConfig } from "./commands/config.js";
+import { TaskCollection } from "./models/task.js";
 import { App } from "./tui/app.js";
 import {
   generatePrompt,
   promptForClipboard,
   generateLaunchCommand,
   commandForClipboard,
-} from "./prompt.js";
+} from "./commands/prompt.js";
 
 function isRavelOnPath(): boolean {
   try {

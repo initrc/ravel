@@ -2,7 +2,7 @@ import { Box } from "ink";
 import { TaskColumns } from "./TaskColumns.js";
 import { EventLog } from "./EventLog.js";
 import { CommandInput } from "./CommandInput.js";
-import { TaskCollection, type Task } from "../../task.js";
+import { TaskCollection, type Task } from "../../models/task.js";
 import type { LogEvent } from "../app.js";
 
 interface DashboardProps {

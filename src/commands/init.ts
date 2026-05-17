@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_CONFIG } from "../config.js";
+import { DEFAULT_CONFIG } from "./config.js";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
