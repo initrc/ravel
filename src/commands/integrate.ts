@@ -64,7 +64,30 @@ export async function runIntegration(
     });
   }
 
-  // 2. Rebase onto the local main branch.
+  // 2. Wait for the "done" commit to land on the feature branch. The file
+  // watcher fires on the task-status file write, which can happen before
+  // the agent's git commit completes. Poll until the worktree is clean.
+  if (await hasUncommittedChanges(worktreeDir)) {
+    onEvent({
+      type: "progress",
+      taskId,
+      message: "Waiting for commit to land on feature branch...",
+    });
+    const timeoutMs = 15_000;
+    const intervalMs = 500;
+    const start = Date.now();
+    while (await hasUncommittedChanges(worktreeDir)) {
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error(
+          `Timed out waiting for commit to land on feature branch. ` +
+          `The worktree still has uncommitted changes after ${timeoutMs / 1000}s.`,
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+
+  // 3. Rebase onto the local main branch.
   onEvent({
     type: "progress",
     taskId,
@@ -107,7 +130,7 @@ export async function runIntegration(
     throw new Error(`git rebase ${mainBranch} failed: ${message}`);
   }
 
-  // 3. Run test command (skipped when empty).
+  // 4. Run test command (skipped when empty).
   const testCommand = config.testCommand?.trim();
   if (testCommand) {
     onEvent({
@@ -147,7 +170,7 @@ export async function runIntegration(
     });
   }
 
-  // 4. Push the rebased branch.
+  // 5. Push the rebased branch.
   if (originExists && config.pushOnIntegration) {
     onEvent({
       type: "progress",
@@ -162,7 +185,7 @@ export async function runIntegration(
     onEvent({ type: "progress", taskId, message: "Pushed" });
   }
 
-  // 5. Restore stashed changes.
+  // 6. Restore stashed changes.
   if (dirty) {
     try {
       await git(["stash", "pop"], projectRoot);
@@ -180,7 +203,7 @@ export async function runIntegration(
     }
   }
 
-  // 6. Clean up worktree and branch.
+  // 7. Clean up worktree and branch.
   onEvent({
     type: "progress",
     taskId,
@@ -199,10 +222,10 @@ export async function runIntegration(
     // Branch may already be deleted; ignore.
   }
 
-  // 7. Delete session file.
+  // 8. Delete session file.
   deleteSession(projectRoot, taskId);
 
-  // 8. Update task status to done on the main repo.
+  // 9. Update task status to done on the main repo.
   try {
     updateTaskStatus(taskFilePath, "done");
   } catch {
