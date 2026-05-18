@@ -99,7 +99,11 @@ program
       }
       const config = readConfig();
       const prompt = generatePrompt(task, config.mainBranch);
-      console.log(prompt);
+      const dim = (text: string) => `\x1b[2m${text}\x1b[0m`;
+      console.log("─".repeat(56));
+      console.log("Prompt for AI agent:");
+      console.log("─".repeat(56));
+      console.log(dim(prompt));
       await promptForClipboard(prompt, options.copy ?? false);
     } catch (err) {
       console.error((err as Error).message);

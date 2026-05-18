@@ -84,6 +84,9 @@ export async function promptForClipboard(
 ): Promise<void> {
   if (copy) {
     await writeClipboard(promptText);
+    console.log(
+      "Prompt copied to clipboard — paste it in your AI agent to start.",
+    );
     return;
   }
 
@@ -93,10 +96,10 @@ export async function promptForClipboard(
 
   if (choice === "1") {
     await writeClipboard(promptText);
-    console.log("Copied!");
+    console.log("Prompt copied!");
   } else if (choice === "2") {
     await writeClipboard(promptText);
-    console.log("Copied!");
+    console.log("Prompt copied!");
   } else {
     console.log("Not copied.");
   }
@@ -119,12 +122,12 @@ export async function commandForClipboard(
 
   if (choice === "1") {
     await writeClipboard(commandText);
-    console.log("Copied!");
+    console.log("Command copied!");
   } else if (choice === "2") {
     await writeClipboard(commandText);
     config.copyCommandByDefault = true;
     writeConfig(cwd, config);
-    console.log("Copied! Copy-on-default set.");
+    console.log("Command copied! Copy-on-default set.");
   } else {
     console.log("Not copied.");
   }

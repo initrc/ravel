@@ -247,10 +247,10 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       config.copyCommandByDefault = true;
       writeConfig(projectRoot, config);
       setPendingClipboard(null);
-      setCommandOutput((prev) => [...prev, { text: "Copied! Copy-on-default set." }]);
+      setCommandOutput((prev) => [...prev, { text: "Command copied! Copy-on-default set." }]);
     } else {
       setPendingClipboard(null);
-      setCommandOutput((prev) => [...prev, { text: "Copied!" }]);
+      setCommandOutput((prev) => [...prev, { text: "Command copied!" }]);
     }
   };
 
@@ -367,7 +367,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
             const clipboardy = await import("clipboardy");
             clipboardy.default.writeSync(launchCmd);
             output.push({ text: "" });
-            output.push({ text: "Copied! (copyCommandByDefault is on)", highlight: true });
+            output.push({ text: "Command copied! (copyCommandByDefault is on)", highlight: true });
           } else {
             output.push({ text: "" });
             output.push({ text: "Copy command? [1. Copy / 2. Always copy / Esc. Do not copy]", highlight: true });

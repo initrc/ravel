@@ -1,7 +1,7 @@
 ---
 id: T0032
 title: Add copy confirmation message for prompt --copy
-status: new
+status: done
 dependencies: []
 ---
 
@@ -9,10 +9,12 @@ dependencies: []
 
 When `ravel prompt <taskId> --copy` is run, print a confirmation message below the prompt text indicating it was copied and is ready to be pasted in the AI agent. Also audit similar copy confirmation messages across the CLI and TUI and make them consistent in tone and wording.
 
+Before printing the prompt, add a separator line, then "Prompt for AI agent:" as a title, then another separator line. Make the prompt text dimmed.
+
 # Acceptance
 
-- `ravel prompt <taskId> --copy` prints the prompt, then prints a message like "Prompt copied to clipboard — paste it in your AI agent to start."
-- Copy confirmation messages across CLI and TUI (prompt copying, command copying, assign output) use consistent language.
+- `ravel prompt <taskId> --copy` prints a separator, a title, another separator, then the prompt text (dimmed), then a message like "Prompt copied to clipboard — paste it in your AI agent to start."
+- Copy confirmation messages across CLI and TUI (prompt copying, command copying, assign output) use consistent language: "Prompt copied!" for prompts, "Command copied!" for commands.
 - `npm run build` succeeds.
 - `npm test` passes.
 
