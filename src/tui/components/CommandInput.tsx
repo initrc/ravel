@@ -42,7 +42,8 @@ export function reduceInput(
 ): { input: string; action: InputAction } {
   if (key.return) {
     const trimmed = currentInput.trim();
-    if (trimmed) return { input: "", action: { type: "submit", value: trimmed } };
+    if (trimmed)
+      return { input: "", action: { type: "submit", value: trimmed } };
     return { input: currentInput, action: { type: "none" } };
   }
 
@@ -51,7 +52,8 @@ export function reduceInput(
   }
 
   // Ignore special keys (arrows, function keys, etc.)
-  if (char.length === 0) return { input: currentInput, action: { type: "none" } };
+  if (char.length === 0)
+    return { input: currentInput, action: { type: "none" } };
 
   // Ignore tab
   if (key.tab) return { input: currentInput, action: { type: "none" } };
@@ -65,7 +67,13 @@ export function reduceInput(
   return { input: currentInput + char, action: { type: "none" } };
 }
 
-export function CommandInput({ output, onCommand, disableInput, onAssignMode, commands }: CommandInputProps) {
+export function CommandInput({
+  output,
+  onCommand,
+  disableInput,
+  onAssignMode,
+  commands,
+}: CommandInputProps) {
   const [input, setInput] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
@@ -89,7 +97,9 @@ export function CommandInput({ output, onCommand, disableInput, onAssignMode, co
         return;
       }
       if (key.downArrow) {
-        setHighlightedIndex((prev) => Math.min(filteredCommands.length - 1, prev + 1));
+        setHighlightedIndex((prev) =>
+          Math.min(filteredCommands.length - 1, prev + 1),
+        );
         return;
       }
       if (key.tab) {
@@ -150,24 +160,34 @@ export function CommandInput({ output, onCommand, disableInput, onAssignMode, co
         >
           {filteredCommands.map((cmd, i) => (
             <Box key={cmd.name} flexDirection="row" gap={2}>
-              <Text color={i === highlightedIndex ? "cyan" : undefined} bold={i === highlightedIndex}>
+              <Text
+                color={i === highlightedIndex ? "cyan" : undefined}
+                bold={i === highlightedIndex}
+              >
                 {cmd.name}
               </Text>
-              <Text dimColor={i !== highlightedIndex}>
-                {cmd.description}
-              </Text>
+              <Text dimColor={i !== highlightedIndex}>{cmd.description}</Text>
             </Box>
           ))}
         </Box>
       )}
       <Box>
         <Text color="cyan" bold>
-          {'> '}
+          {"> "}
         </Text>
         {input ? (
           <Text>{input}█</Text>
         ) : (
-          <Text dimColor>a assign  / commands  ↑↓ scroll event log  PgUp/PgDn page</Text>
+          <Text>
+            <Text bold>a</Text>
+            <Text dimColor> assign{"   "}</Text>
+            <Text bold>/</Text>
+            <Text dimColor> commands{"   "}</Text>
+            <Text bold>↑↓</Text>
+            <Text dimColor> scroll event log{"   "}</Text>
+            <Text bold>PgUp/PgDn</Text>
+            <Text dimColor> page</Text>
+          </Text>
         )}
       </Box>
     </Box>
