@@ -12,6 +12,12 @@ import { runIntegration } from "../commands/integrate.js";
 import type { IntegrationEvent } from "../commands/integrate.js";
 import { notify } from "../commands/notify.js";
 import { generateLaunchCommand } from "../commands/prompt.js";
+import {
+  fmtAssignWorktree,
+  fmtAssignBranch,
+  ASSIGN_LAUNCH_INSTRUCTION,
+  fmtIntegrationComplete,
+} from "../commands/messages.js";
 import type { RavelEvent } from "../models/events.js";
 
 export interface LogEvent {
@@ -206,6 +212,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           break;
         case "test-failure":
           addEvent(event.message);
+          console.error(event.output);
           notify(event, config.notifyWhenDone);
           integratedRef.current.delete(taskId);
           onFinish();
@@ -217,7 +224,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           onFinish();
           break;
         case "complete":
-          addEvent(`${event.taskId} integration complete`);
+          addEvent(fmtIntegrationComplete(event.taskId));
           notify(event, config.notifyWhenDone);
           onFinish();
           break;
@@ -353,13 +360,9 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
           );
 
           const output: OutputLine[] = [
-            { text: `Worktree created at ${session.worktreePath}` },
-            { text: `Branch: ${session.branch}` },
-            { text: "" },
-            { text: "Run this command in a new terminal or tab." },
-            { text: "When your coding agent launches, a prepared prompt will be in your clipboard." },
-            { text: "Paste it there." },
-            { text: "" },
+            { text: fmtAssignWorktree(session.worktreePath) },
+            { text: fmtAssignBranch(session.branch) },
+            { text: ASSIGN_LAUNCH_INSTRUCTION },
             { text: launchCmd },
           ];
 

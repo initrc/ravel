@@ -17,6 +17,12 @@ import {
   generateLaunchCommand,
   commandForClipboard,
 } from "./commands/prompt.js";
+import {
+  fmtAssignWorktree,
+  fmtAssignBranch,
+  ASSIGN_LAUNCH_INSTRUCTION,
+  fmtIntegrationComplete,
+} from "./commands/messages.js";
 
 
 const program = new Command();
@@ -41,8 +47,8 @@ program
     try {
       const { session } = await assignCommand(taskId);
 
-      console.log(`Worktree created at ${session.worktreePath}`);
-      console.log(`Branch: ${session.branch}`);
+      console.log(fmtAssignWorktree(session.worktreePath));
+      console.log(fmtAssignBranch(session.branch));
 
       const config = readConfig();
       const ravelCmd = isOnPath("ravel")
@@ -57,11 +63,7 @@ program
         config.agentCommand,
       );
 
-      console.log(
-        "\nRun this command in a new terminal or tab.\n" +
-          "When your coding agent launches, a prepared prompt will be in your clipboard.\n" +
-          "Paste it there.\n",
-      );
+      console.log(ASSIGN_LAUNCH_INSTRUCTION);
       console.log(`${command}`);
       await commandForClipboard(command);
     } catch (err) {
@@ -137,7 +139,7 @@ program
             notify(event, config.notifyWhenDone);
             break;
           case "complete":
-            console.log(`${event.taskId} integration complete`);
+            console.log(fmtIntegrationComplete(event.taskId));
             notify(event, config.notifyWhenDone);
             break;
         }
