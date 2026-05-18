@@ -77,6 +77,11 @@ export function CommandInput({
   const [input, setInput] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
+  const nameWidth =
+    commands.length > 0
+      ? Math.max(...commands.map((c) => c.name.length))
+      : 0;
+
   const showDropdown = input.startsWith("/") && !input.includes(" ");
   const filteredCommands = showDropdown
     ? commands.filter((c) => c.name.startsWith(input))
@@ -160,12 +165,14 @@ export function CommandInput({
         >
           {filteredCommands.map((cmd, i) => (
             <Box key={cmd.name} flexDirection="row" gap={2}>
-              <Text
-                color={i === highlightedIndex ? "cyan" : undefined}
-                bold={i === highlightedIndex}
-              >
-                {cmd.name}
-              </Text>
+              <Box width={nameWidth}>
+                <Text
+                  color={i === highlightedIndex ? "cyan" : undefined}
+                  bold={i === highlightedIndex}
+                >
+                  {cmd.name}
+                </Text>
+              </Box>
               <Text dimColor={i !== highlightedIndex}>{cmd.description}</Text>
             </Box>
           ))}
