@@ -11,6 +11,7 @@ interface DashboardProps {
   events: LogEvent[];
   commandOutput: Array<{text: string; highlight?: boolean}>;
   onCommand: (command: string) => void | Promise<void>;
+  disableInput?: boolean;
 }
 
 export function Dashboard({
@@ -19,12 +20,13 @@ export function Dashboard({
   events,
   commandOutput,
   onCommand,
+  disableInput,
 }: DashboardProps) {
   return (
     <Box flexDirection="column" height="100%" padding={1}>
       <TaskColumns tasks={tasks} collection={collection} />
       <EventLog events={events} />
-      <CommandInput output={commandOutput} onCommand={onCommand} />
+      <CommandInput output={commandOutput} onCommand={onCommand} disableInput={disableInput} />
     </Box>
   );
 }

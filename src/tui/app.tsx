@@ -6,7 +6,7 @@ import { Dashboard } from "./components/Dashboard.js";
 import { RavelWatcher } from "../watcher.js";
 import { TaskCollection, parseTask, type Task } from "../models/task.js";
 import { readSession } from "../models/session.js";
-import { readConfig } from "../commands/config.js";
+import { readConfig, writeConfig } from "../commands/config.js";
 import { assignCommand } from "../commands/assign.js";
 import { runIntegration } from "../commands/integrate.js";
 import type { IntegrationEvent } from "../commands/integrate.js";
@@ -78,6 +78,8 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
   const [events, setEvents] = useState<LogEvent[]>([]);
   interface OutputLine { text: string; highlight?: boolean }
   const [commandOutput, setCommandOutput] = useState<OutputLine[]>([]);
+  interface PendingClipboard { launchCmd: string }
+  const [pendingClipboard, setPendingClipboard] = useState<PendingClipboard | null>(null);
   const { exit } = useApp();
 
   const tasksDir = path.join(projectRoot, "ravel", "tasks");
@@ -227,6 +229,31 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     });
   };
 
+  const handleClipboardChoice = async (choice: "1" | "2" | "Esc") => {
+    if (!pendingClipboard) return;
+    const { launchCmd } = pendingClipboard;
+
+    if (choice === "Esc") {
+      setPendingClipboard(null);
+      setCommandOutput((prev) => [...prev, { text: "Not copied." }]);
+      return;
+    }
+
+    const clipboardy = await import("clipboardy");
+    clipboardy.default.writeSync(launchCmd);
+
+    if (choice === "2") {
+      const config = readConfig(projectRoot);
+      config.copyCommandByDefault = true;
+      writeConfig(projectRoot, config);
+      setPendingClipboard(null);
+      setCommandOutput((prev) => [...prev, { text: "Copied! Copy-on-default set." }]);
+    } else {
+      setPendingClipboard(null);
+      setCommandOutput((prev) => [...prev, { text: "Copied!" }]);
+    }
+  };
+
   useEffect(() => {
     reloadTasks();
 
@@ -261,6 +288,18 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
   }, [projectRoot, tasksDir]);
 
   useInput((input, key) => {
+    // Clipboard prompt mode: intercept 1, 2, Escape
+    if (pendingClipboard) {
+      if (key.escape) {
+        void handleClipboardChoice("Esc");
+      } else if (input === "1") {
+        void handleClipboardChoice("1");
+      } else if (input === "2") {
+        void handleClipboardChoice("2");
+      }
+      return;
+    }
+
     if (key.ctrl && input === "c") {
       exit();
     }
@@ -313,17 +352,29 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
             config.agentCommand,
           );
 
-          // Auto-copy since TUI owns the terminal (no interactive prompt)
-          const clipboardy = await import("clipboardy");
-          clipboardy.default.writeSync(launchCmd);
-
-          setCommandOutput([
-            { text: `Assigned ${parsed.taskId}: worktree at ${session.worktreePath}` },
-            { text: `Launch command copied to clipboard:` },
-            { text: `  ${launchCmd}` },
+          const output: OutputLine[] = [
+            { text: `Worktree created at ${session.worktreePath}` },
+            { text: `Branch: ${session.branch}` },
             { text: "" },
-            { text: "Paste it in a new terminal to start the builder.", highlight: true },
-          ]);
+            { text: "Run this command in a new terminal or tab." },
+            { text: "When your coding agent launches, a prepared prompt will be in your clipboard." },
+            { text: "Paste it there." },
+            { text: "" },
+            { text: launchCmd },
+          ];
+
+          if (config.copyCommandByDefault) {
+            const clipboardy = await import("clipboardy");
+            clipboardy.default.writeSync(launchCmd);
+            output.push({ text: "" });
+            output.push({ text: "Copied! (copyCommandByDefault is on)", highlight: true });
+          } else {
+            output.push({ text: "" });
+            output.push({ text: "Copy command? [1. Copy / 2. Always copy / Esc. Do not copy]", highlight: true });
+            setPendingClipboard({ launchCmd });
+          }
+
+          setCommandOutput(output);
         } catch (err) {
           setCommandOutput([{ text: `Error: ${(err as Error).message}` }]);
         }
@@ -353,6 +404,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       events={events}
       commandOutput={commandOutput}
       onCommand={handleCommand}
+      disableInput={!!pendingClipboard}
     />
   );
 }

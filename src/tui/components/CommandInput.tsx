@@ -9,6 +9,7 @@ interface OutputLine {
 interface CommandInputProps {
   output: OutputLine[];
   onCommand: (command: string) => void | Promise<void>;
+  disableInput?: boolean;
 }
 
 export interface KeyLike {
@@ -55,10 +56,11 @@ export function reduceInput(
   return { input: currentInput + char, action: { type: "none" } };
 }
 
-export function CommandInput({ output, onCommand }: CommandInputProps) {
+export function CommandInput({ output, onCommand, disableInput }: CommandInputProps) {
   const [input, setInput] = useState("");
 
   useInput((char, key) => {
+    if (disableInput) return;
     const result = reduceInput(input, char, key);
     if (result.action.type === "submit") {
       void onCommand(result.action.value);

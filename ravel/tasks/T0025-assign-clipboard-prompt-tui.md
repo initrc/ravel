@@ -1,7 +1,7 @@
 ---
 id: T0025
 title: Prompt before copying launch command in TUI assign
-status: new
+status: done
 dependencies: []
 ---
 
