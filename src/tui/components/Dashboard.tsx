@@ -2,6 +2,7 @@ import { Box } from "ink";
 import { TaskColumns } from "./TaskColumns.js";
 import { EventLog } from "./EventLog.js";
 import { CommandInput } from "./CommandInput.js";
+import { AssignTaskList } from "./AssignTaskList.js";
 import { TaskCollection, type Task } from "../../models/task.js";
 import type { LogEvent } from "../app.js";
 
@@ -12,6 +13,10 @@ interface DashboardProps {
   commandOutput: Array<{text: string; highlight?: boolean}>;
   onCommand: (command: string) => void | Promise<void>;
   disableInput?: boolean;
+  onAssignMode?: () => void;
+  assignMode?: boolean;
+  assignModeTasks?: Task[];
+  assignModeSelectedIndex?: number;
 }
 
 export function Dashboard({
@@ -21,12 +26,28 @@ export function Dashboard({
   commandOutput,
   onCommand,
   disableInput,
+  onAssignMode,
+  assignMode,
+  assignModeTasks = [],
+  assignModeSelectedIndex = 0,
 }: DashboardProps) {
   return (
     <Box flexDirection="column" height="100%" padding={1}>
       <TaskColumns tasks={tasks} collection={collection} />
-      <EventLog events={events} />
-      <CommandInput output={commandOutput} onCommand={onCommand} disableInput={disableInput} />
+      <EventLog events={events} disableInput={assignMode} />
+      {assignMode && (
+        <AssignTaskList
+          tasks={assignModeTasks}
+          collection={collection}
+          selectedIndex={assignModeSelectedIndex}
+        />
+      )}
+      <CommandInput
+        output={commandOutput}
+        onCommand={onCommand}
+        disableInput={disableInput || assignMode}
+        onAssignMode={onAssignMode}
+      />
     </Box>
   );
 }

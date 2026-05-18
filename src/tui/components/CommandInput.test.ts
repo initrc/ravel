@@ -104,4 +104,37 @@ describe("reduceInput", () => {
       expect(result.input).toBe("test");
     });
   });
+
+  describe("assign mode trigger", () => {
+    it("triggers assignMode action when 'a' is pressed on empty input", () => {
+      const result = reduceInput("", "a", {});
+      expect(result.input).toBe("");
+      expect(result.action).toEqual({ type: "assignMode" });
+    });
+
+    it("triggers assignMode action when 'A' is pressed on empty input", () => {
+      const result = reduceInput("", "A", {});
+      expect(result.input).toBe("");
+      expect(result.action).toEqual({ type: "assignMode" });
+    });
+
+    it("appends 'a' to non-empty input (does not trigger assign mode)", () => {
+      const result = reduceInput("/", "a", {});
+      expect(result.input).toBe("/a");
+      expect(result.action).toEqual({ type: "none" });
+    });
+
+    it("builds '/assign' without triggering assign mode", () => {
+      let state: { input: string; action: import("./CommandInput.js").InputAction } = {
+        input: "",
+        action: { type: "none" },
+      };
+
+      for (const ch of "/assign") {
+        state = reduceInput(state.input, ch, {});
+      }
+
+      expect(state.input).toBe("/assign");
+    });
+  });
 });

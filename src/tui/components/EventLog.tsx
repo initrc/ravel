@@ -4,14 +4,16 @@ import type { LogEvent } from "../app.js";
 
 interface EventLogProps {
   events: LogEvent[];
+  disableInput?: boolean;
 }
 
-export function EventLog({ events }: EventLogProps) {
+export function EventLog({ events, disableInput }: EventLogProps) {
   const [scrollOffset, setScrollOffset] = useState(0);
   const visibleCount = 15;
   const maxOffset = Math.max(0, events.length - visibleCount);
 
   useInput((_input, key) => {
+    if (disableInput) return;
     if (key.upArrow) {
       setScrollOffset((prev) => Math.min(maxOffset, prev + 1));
     } else if (key.downArrow) {

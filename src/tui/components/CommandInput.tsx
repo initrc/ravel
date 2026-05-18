@@ -10,6 +10,7 @@ interface CommandInputProps {
   output: OutputLine[];
   onCommand: (command: string) => void | Promise<void>;
   disableInput?: boolean;
+  onAssignMode?: () => void;
 }
 
 export interface KeyLike {
@@ -29,6 +30,7 @@ export interface KeyLike {
 export type InputAction =
   | { type: "submit"; value: string }
   | { type: "clear" }
+  | { type: "assignMode" }
   | { type: "none" };
 
 export function reduceInput(
@@ -52,11 +54,16 @@ export function reduceInput(
   // Ignore tab
   if (key.tab) return { input: currentInput, action: { type: "none" } };
 
+  // Trigger assign mode when "a" is pressed on empty input
+  if (!currentInput && (char === "a" || char === "A")) {
+    return { input: currentInput, action: { type: "assignMode" } };
+  }
+
   // Accept printable characters
   return { input: currentInput + char, action: { type: "none" } };
 }
 
-export function CommandInput({ output, onCommand, disableInput }: CommandInputProps) {
+export function CommandInput({ output, onCommand, disableInput, onAssignMode }: CommandInputProps) {
   const [input, setInput] = useState("");
 
   useInput((char, key) => {
@@ -64,6 +71,8 @@ export function CommandInput({ output, onCommand, disableInput }: CommandInputPr
     const result = reduceInput(input, char, key);
     if (result.action.type === "submit") {
       void onCommand(result.action.value);
+    } else if (result.action.type === "assignMode") {
+      onAssignMode?.();
     }
     setInput(result.input);
   });
@@ -86,7 +95,7 @@ export function CommandInput({ output, onCommand, disableInput }: CommandInputPr
         {input ? (
           <Text>{input}█</Text>
         ) : (
-          <Text dimColor>/ commands  ↑↓ scroll event log  PgUp/PgDn page</Text>
+          <Text dimColor>a assign  / commands  ↑↓ scroll event log  PgUp/PgDn page</Text>
         )}
       </Box>
     </Box>

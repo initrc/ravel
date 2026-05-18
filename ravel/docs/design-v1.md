@@ -312,10 +312,25 @@ Slash command input.
 Examples:
 
 ```txt
-/assign
+/assign T0003
 /config
 /help
 ```
+
+### Assign Mode
+
+Pressing `a` on an empty command line enters assign mode, an interactive task picker for assignment.
+
+Assign mode shows a selectable list of assignable tasks (new, unblocked) sorted by task ID:
+
+```txt
+Assign T0001: Add user authentication — unblocks T0003, T0004 once done
+Assign T0002: Set up database schema
+```
+
+Each line shows the task ID, title, and which new tasks would be unblocked once it is done. If a task unblocks nothing, the "— unblocks ..." portion is omitted.
+
+Up/down arrows navigate the list. Enter assigns the selected task (same as `/assign <taskId>`). Escape exits without assigning.
 
 ## `ravel assign T0003`
 

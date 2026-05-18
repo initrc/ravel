@@ -86,6 +86,8 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
   const [commandOutput, setCommandOutput] = useState<OutputLine[]>([]);
   interface PendingClipboard { launchCmd: string }
   const [pendingClipboard, setPendingClipboard] = useState<PendingClipboard | null>(null);
+  const [assignMode, setAssignMode] = useState(false);
+  const [assignModeSelectedIndex, setAssignModeSelectedIndex] = useState(0);
   const { exit } = useApp();
 
   const tasksDir = path.join(projectRoot, "ravel", "tasks");
@@ -294,7 +296,43 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     };
   }, [projectRoot, tasksDir]);
 
+  // Re-build collection for TaskColumns each render
+  const collection = new TaskCollection(tasks);
+
+  const assignableTasks = tasks
+    .filter((t) => t.status === "new" && !collection.isBlocked(t))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const enterAssignMode = () => {
+    setAssignModeSelectedIndex(0);
+    setAssignMode(true);
+  };
+
+  const exitAssignMode = () => {
+    setAssignMode(false);
+  };
+
   useInput((input, key) => {
+    // Assign mode: select a task with arrows, Enter to assign
+    if (assignMode) {
+      if (key.escape) {
+        exitAssignMode();
+      } else if (key.return) {
+        const task = assignableTasks[assignModeSelectedIndex];
+        if (task) {
+          exitAssignMode();
+          void handleCommand(`/assign ${task.id}`);
+        }
+      } else if (key.upArrow) {
+        setAssignModeSelectedIndex((prev) => Math.max(0, prev - 1));
+      } else if (key.downArrow) {
+        setAssignModeSelectedIndex((prev) =>
+          Math.min(assignableTasks.length - 1, prev + 1),
+        );
+      }
+      return;
+    }
+
     // Clipboard prompt mode: intercept 1, 2, Escape
     if (pendingClipboard) {
       if (key.escape) {
@@ -396,10 +434,6 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
     }
   };
 
-  // Re-build collection for TaskColumns each render
-  const collection =
-    tasks.length > 0 ? new TaskCollection(tasks) : new TaskCollection([]);
-
   return (
     <Dashboard
       tasks={tasks}
@@ -408,6 +442,10 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       commandOutput={commandOutput}
       onCommand={handleCommand}
       disableInput={!!pendingClipboard}
+      onAssignMode={enterAssignMode}
+      assignMode={assignMode}
+      assignModeTasks={assignableTasks}
+      assignModeSelectedIndex={assignModeSelectedIndex}
     />
   );
 }
