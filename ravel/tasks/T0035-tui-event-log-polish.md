@@ -1,7 +1,7 @@
 ---
 id: T0035
 title: Polish TUI event log formatting
-status: new
+status: done
 dependencies: []
 ---
 

@@ -16,5 +16,5 @@ export const ASSIGN_LAUNCH_INSTRUCTION = "\nRun this command in a new terminal.\
 
 /** /integrate: completion announcement */
 export function fmtIntegrationComplete(taskId: string) {
-  return `${taskId} integration complete`;
+  return `${taskId} integration: Complete`;
 }

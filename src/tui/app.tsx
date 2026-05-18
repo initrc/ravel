@@ -25,11 +25,23 @@ export interface LogEvent {
   message: string;
 }
 
+function deriveBranchSource(filePath: string): string {
+  const idx = filePath.indexOf(".worktrees/");
+  if (idx !== -1) {
+    return filePath.slice(idx + ".worktrees/".length).split("/")[0];
+  }
+  return "main";
+}
+
 export function formatEvent(event: RavelEvent): string {
   switch (event.type) {
     case "task-status-changed":
       if (event.newStatus === "review") {
         return `${event.taskId} is ready for review`;
+      }
+      if (event.newStatus === "done") {
+        const branch = deriveBranchSource(event.filePath);
+        return `${event.taskId} is done on the ${branch} branch`;
       }
       return `${event.taskId} is ${event.newStatus}`;
     case "task-created":
@@ -190,7 +202,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
 
     integratingRef.current = true;
     integratedRef.current.add(taskId);
-    addEvent(`${taskId} integration: starting...`);
+    addEvent(`${taskId} integration: Starting...`);
 
     const onFinish = () => {
       reloadTasks();

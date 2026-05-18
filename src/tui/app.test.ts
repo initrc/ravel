@@ -17,6 +17,33 @@ describe("formatEvent", () => {
     ).toBe("T0042 is ready for review");
   });
 
+  it("formats task-status-changed to 'done' on the main branch", () => {
+    expect(
+      formatEvent({
+        type: "task-status-changed",
+        taskId: "T0033",
+        oldStatus: "in-progress",
+        newStatus: "done",
+        filePath: "/Users/user/code/ravel/ravel/tasks/T0033.md",
+      }),
+    ).toBe("T0033 is done on the main branch");
+  });
+
+  it("formats task-status-changed to 'done' on a worktree branch", () => {
+    expect(
+      formatEvent({
+        type: "task-status-changed",
+        taskId: "T0033",
+        oldStatus: "in-progress",
+        newStatus: "done",
+        filePath:
+          "/Users/user/code/ravel/.worktrees/T0033-rebase-conflict-amend/ravel/tasks/T0033.md",
+      }),
+    ).toBe(
+      "T0033 is done on the T0033-rebase-conflict-amend branch",
+    );
+  });
+
   it("formats task-status-changed to other statuses", () => {
     expect(
       formatEvent({
