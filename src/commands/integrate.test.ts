@@ -61,7 +61,6 @@ const { runIntegration } = await import("./integrate.js");
 // Helpers
 // ---------------------------------------------------------------------------
 const projectRoot = "/tmp/test-project";
-const worktreeDir = "/tmp/test-project/.worktrees/T0042";
 const branch = "T0042-fix-bug";
 const taskId = "T0042";
 
@@ -78,12 +77,12 @@ function setupSession(sess = session()) {
 }
 
 function gitSuccess(args: string[]): string {
-  if (args[0] === "rebase" && args[1] === "--abort") return "";
-  if (args[0] === "rebase") return "Successfully rebased.";
   if (args[0] === "stash" && args[1] === "push") return "Saved working directory";
   if (args[0] === "stash" && args[1] === "pop") return "Dropped refs/stash@{0}";
   if (args[0] === "checkout") return "";
   if (args[0] === "merge") return "Fast-forward";
+  if (args[0] === "merge-base") return "abc1234\n";
+  if (args[0] === "rev-parse") return "abc1234\n";
   if (args[0] === "worktree" && args[1] === "remove") return "";
   if (args[0] === "branch" && args[1] === "-D") return "";
   return "";
@@ -144,14 +143,18 @@ describe("runIntegration", () => {
   });
 
   describe("happy path — clean main, no test command", () => {
-    it("rebase, merge, cleanup, and emit complete event", async () => {
+    it("verifies rebase, merges, cleans up, and emits complete event", async () => {
       setupConfig({ testCommand: "" });
 
       const { events, callback } = collectEvents();
       await runIntegration(taskId, projectRoot, callback);
 
       expect(mocks.mockGit).toHaveBeenCalledWith(["status", "--porcelain"], projectRoot);
-      expect(mocks.mockGit).toHaveBeenCalledWith(["rebase", "main"], worktreeDir);
+      expect(mocks.mockGit).toHaveBeenCalledWith(
+        ["merge-base", branch, "main"],
+        projectRoot,
+      );
+      expect(mocks.mockGit).toHaveBeenCalledWith(["rev-parse", "main"], projectRoot);
       expect(mocks.mockGit).toHaveBeenCalledWith(["checkout", "main"], projectRoot);
       expect(mocks.mockGit).toHaveBeenCalledWith(
         ["merge", "--ff-only", branch],
@@ -174,7 +177,7 @@ describe("runIntegration", () => {
   });
 
   describe("happy path — dirty main with test command", () => {
-    it("stashes, rebases, runs tests, unstashes, merge, cleanup", async () => {
+    it("stashes, verifies rebase, runs tests, unstashes, merge, cleanup", async () => {
       setupConfig({ testCommand: "true" });
 
       mocks.mockGit.mockImplementation((args: string[], cwd: string) => {
@@ -198,74 +201,6 @@ describe("runIntegration", () => {
         .map((e) => (e as { message: string }).message);
       expect(progressMessages.some((m) => m.includes("true"))).toBe(true);
       expect(progressMessages.some((m) => m === "Tests passed")).toBe(true);
-    });
-  });
-
-  describe("rebase conflict", () => {
-    it("aborts rebase, emits conflict event, and returns", async () => {
-      mocks.mockGit.mockImplementation((args: string[], _cwd: string) => {
-        if (args[0] === "status" && args[1] === "--porcelain") return "";
-        if (args[0] === "rebase" && args[1] !== "--abort") {
-          const err = new Error(
-            "CONFLICT (content): Merge conflict in file.txt",
-          ) as Error & { stderr: string };
-          err.stderr = "CONFLICT (content): Merge conflict in file.txt";
-          throw err;
-        }
-        return gitSuccess(args);
-      });
-
-      const { events, callback } = collectEvents();
-      await runIntegration(taskId, projectRoot, callback);
-
-      expect(mocks.mockGit).toHaveBeenCalledWith(["rebase", "--abort"], worktreeDir);
-
-      const conflictEvent = events.find((e) => e.type === "conflict");
-      expect(conflictEvent).toBeDefined();
-      expect((conflictEvent as { message: string }).message).toContain(
-        "Rebase conflict",
-      );
-
-      expect(mocks.mockGit).not.toHaveBeenCalledWith(["checkout", "main"], projectRoot);
-    });
-
-    it("reminds about stashed changes when main was dirty", async () => {
-      mocks.mockGit.mockImplementation((args: string[], cwd: string) => {
-        if (args[0] === "status" && args[1] === "--porcelain") {
-          return cwd === projectRoot ? " M file.txt" : "";
-        }
-        if (args[0] === "stash" && args[1] === "push") return "";
-        if (args[0] === "rebase" && args[1] !== "--abort") {
-          const err = new Error("conflict") as Error & { stderr: string };
-          err.stderr = "CONFLICT";
-          throw err;
-        }
-        return gitSuccess(args);
-      });
-
-      const { events, callback } = collectEvents();
-      await runIntegration(taskId, projectRoot, callback);
-
-      const progressMessages = events
-        .filter((e) => e.type === "progress")
-        .map((e) => (e as { message: string }).message);
-      expect(progressMessages.some((m) => m.includes("stash pop"))).toBe(true);
-    });
-  });
-
-  describe("rebase non-conflict error", () => {
-    it("throws non-conflict rebase errors", async () => {
-      mocks.mockGit.mockImplementation((args: string[], _cwd: string) => {
-        if (args[0] === "status" && args[1] === "--porcelain") return "";
-        if (args[0] === "rebase" && args[1] !== "--abort") {
-          throw new Error("fatal: not a git repository");
-        }
-        return gitSuccess(args);
-      });
-
-      await expect(
-        runIntegration(taskId, projectRoot, () => {}),
-      ).rejects.toThrow("git rebase main failed");
     });
   });
 
@@ -349,7 +284,8 @@ describe("runIntegration", () => {
 
       mocks.mockGit.mockImplementation((args: string[], _cwd: string) => {
         if (args[0] === "status" && args[1] === "--porcelain") return "";
-        if (args[0] === "rebase") return "ok";
+        if (args[0] === "merge-base") return "abc1234\n";
+        if (args[0] === "rev-parse") return "abc1234\n";
         if (args[0] === "checkout") return "";
         if (args[0] === "merge") throw new Error("fatal: Not possible to fast-forward");
         return gitSuccess(args);
@@ -445,8 +381,8 @@ describe("runIntegration", () => {
     });
   });
 
-  describe("polling for worktree commit", () => {
-    it("waits for worktree to become clean", async () => {
+  describe("polling for commit and rebase", () => {
+    it("waits for worktree to become clean and rebased", async () => {
       setupConfig({ testCommand: "" });
 
       vi.useFakeTimers();
@@ -485,7 +421,7 @@ describe("runIntegration", () => {
       }
     });
 
-    it("throws after timeout when worktree never becomes clean", async () => {
+    it("throws after timeout when conditions are never met", async () => {
       setupConfig({ testCommand: "" });
 
       vi.useFakeTimers();
@@ -505,8 +441,7 @@ describe("runIntegration", () => {
         await vi.advanceTimersByTimeAsync(300_001);
 
         await expect(promise).rejects.toThrow(
-          "Timed out waiting for commit to land on feature branch. " +
-            "The worktree still has uncommitted changes after 300s.",
+          "Timed out waiting for agent to complete.",
         );
       } finally {
         vi.useRealTimers();

@@ -97,7 +97,8 @@ program
       if (!task) {
         throw new Error(`Task ${taskId} not found`);
       }
-      const prompt = generatePrompt(task);
+      const config = readConfig();
+      const prompt = generatePrompt(task, config.mainBranch);
       console.log(prompt);
       await promptForClipboard(prompt, options.copy ?? false);
     } catch (err) {

@@ -9,14 +9,14 @@ async function writeClipboard(text: string): Promise<void> {
   clipboardy.default.writeSync(text);
 }
 
-export function generatePrompt(task: Task): string {
+export function generatePrompt(task: Task, mainBranch: string): string {
   return `You are working in a git worktree for task ${task.id}.
 
 Implement the task described in:
 ravel/tasks/${task.filename}
 
 When the implementation is ready for human review:
-- make sure all tests and lint passed
+- verify the build, all tests and lint passed
 - update the task status to review
 - stop and wait for my feedback
 
@@ -25,8 +25,8 @@ If I later say LGTM:
 - create exactly one local git commit
 - use this commit message format:
   ${task.id}: ${task.title}
-
-Do not push, merge, rebase, or delete branches.`;
+- rebase onto the ${mainBranch} branch
+- resolve any conflicts from the rebase and verify the build, all tests and lint passed`;
 }
 
 async function waitForKeypress(): Promise<string> {
@@ -87,9 +87,7 @@ export async function promptForClipboard(
     return;
   }
 
-  console.log(
-    "\nCopy prompt? [1. Copy / 2. Always copy / Esc. Do not copy]",
-  );
+  console.log("\nCopy prompt? [1. Copy / 2. Always copy / Esc. Do not copy]");
 
   const choice = await waitForKeypress();
 
@@ -115,9 +113,7 @@ export async function commandForClipboard(
     return;
   }
 
-  console.log(
-    "\nCopy command? [1. Copy / 2. Always copy / Esc. Do not copy]",
-  );
+  console.log("\nCopy command? [1. Copy / 2. Always copy / Esc. Do not copy]");
 
   const choice = await waitForKeypress();
 

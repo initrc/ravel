@@ -1,7 +1,7 @@
 ---
 id: T0029
 title: Move rebase responsibility to AI agent
-status: new
+status: done
 dependencies: []
 ---
 
@@ -19,7 +19,12 @@ dependencies: []
 
 # Implementation Notes
 
-- **`generatePrompt` change**: Needs the main branch name. Either pass it as a parameter or read config inside the function. The function is called in `ravel.ts:108` where config is already available. New text near the LGTM section: `- rebase onto <mainBranch> (resolve any conflicts)`. Remove the "Do not push, merge, rebase, or delete branches." line.
+- **`generatePrompt` change**: Needs the main branch name. Either pass it as a parameter or read config inside the function. The function is called in `ravel.ts:108` where config is already available. New text near the LGTM section:
+  ```
+  - rebase onto the ${mainBranch} branch
+  - resolve any conflicts from the rebase and verify the build, all tests and lint passed
+  ```
+  Remove the "Do not push, merge, rebase, or delete branches." line.
 
 - **`runIntegration` change**: Replace step 3 (the `git rebase mainBranch` in worktreeDir, lines 79-121) with a verification check. The polling in step 2 already waits for the worktree to be clean; extend it to also verify the rebase is done.
 

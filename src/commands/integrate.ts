@@ -22,6 +22,20 @@ async function hasUncommittedChanges(cwd: string): Promise<boolean> {
   return out.trim().length > 0;
 }
 
+async function isRebasedOnMain(
+  branch: string,
+  mainBranch: string,
+  cwd: string,
+): Promise<boolean> {
+  try {
+    const mergeBase = (await git(["merge-base", branch, mainBranch], cwd)).trim();
+    const mainHead = (await git(["rev-parse", mainBranch], cwd)).trim();
+    return mergeBase === mainHead;
+  } catch {
+    return false;
+  }
+}
+
 export async function runIntegration(
   taskId: string,
   projectRoot: string,
@@ -54,73 +68,37 @@ export async function runIntegration(
     });
   }
 
-  // 2. Wait for the "done" commit to land on the feature branch. The file
-  // watcher fires on the task-status file write, which can happen before
-  // the agent's git commit completes. Poll until the worktree is clean.
-  if (await hasUncommittedChanges(worktreeDir)) {
+  // 2. Wait for the agent to commit and rebase. The file watcher fires on
+  // the task-status file write, which can happen before the agent's git
+  // commit completes. Poll until the worktree is clean AND the feature
+  // branch is rebased on main.
+  if (
+    (await hasUncommittedChanges(worktreeDir)) ||
+    !(await isRebasedOnMain(branch, mainBranch, projectRoot))
+  ) {
     onEvent({
       type: "progress",
       taskId,
-      message: "Waiting for commit to land on feature branch...",
+      message: "Waiting for commit and rebase to complete...",
     });
     const timeoutMs = 300_000;
     const intervalMs = 2000;
     const start = Date.now();
-    while (await hasUncommittedChanges(worktreeDir)) {
+    while (
+      (await hasUncommittedChanges(worktreeDir)) ||
+      !(await isRebasedOnMain(branch, mainBranch, projectRoot))
+    ) {
       if (Date.now() - start >= timeoutMs) {
         throw new Error(
-          `Timed out waiting for commit to land on feature branch. ` +
-          `The worktree still has uncommitted changes after ${timeoutMs / 1000}s.`,
+          `Timed out waiting for agent to complete. ` +
+          `The agent must commit changes and rebase onto ${mainBranch} before integration.`,
         );
       }
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
   }
 
-  // 3. Rebase onto the local main branch.
-  onEvent({
-    type: "progress",
-    taskId,
-    message: `Rebasing onto ${mainBranch}...`,
-  });
-  try {
-    await git(["rebase", mainBranch], worktreeDir);
-  } catch (err) {
-    const stderr = (err as { stderr?: string }).stderr ?? "";
-    const message = String(err);
-    const isConflict =
-      stderr.includes("CONFLICT") ||
-      message.includes("CONFLICT") ||
-      message.includes("conflict");
-
-    if (isConflict) {
-      try {
-        await git(["rebase", "--abort"], worktreeDir);
-      } catch {
-        // Best-effort abort; ignore failure.
-      }
-
-      if (dirty) {
-        onEvent({
-          type: "progress",
-          taskId,
-          message: "Uncommitted changes are stashed. Run 'git stash pop' to restore them after resolving the conflict.",
-        });
-      }
-
-      onEvent({
-        type: "conflict",
-        taskId,
-        message: `Rebase conflict for ${taskId}. Resolve the conflicts manually, then run 'ravel integrate ${taskId}'.`,
-      });
-      return;
-    }
-
-    // Non-conflict error.
-    throw new Error(`git rebase ${mainBranch} failed`, { cause: err });
-  }
-
-  // 4. Run test command (skipped when empty).
+  // 3. Run test command (skipped when empty).
   const testCommand = config.testCommand?.trim();
   if (testCommand) {
     onEvent({
@@ -160,7 +138,7 @@ export async function runIntegration(
     });
   }
 
-  // 5. Fast-forward main to the rebased feature branch.
+  // 4. Fast-forward main to the rebased feature branch.
   onEvent({
     type: "progress",
     taskId,
@@ -174,7 +152,7 @@ export async function runIntegration(
   }
   onEvent({ type: "progress", taskId, message: "Merged" });
 
-  // 6. Restore stashed changes.
+  // 5. Restore stashed changes.
   if (dirty) {
     try {
       await git(["stash", "pop"], projectRoot);
@@ -192,7 +170,7 @@ export async function runIntegration(
     }
   }
 
-  // 7. Clean up worktree and branch.
+  // 6. Clean up worktree and branch.
   onEvent({
     type: "progress",
     taskId,
@@ -211,10 +189,10 @@ export async function runIntegration(
     // Branch may already be deleted; ignore.
   }
 
-  // 8. Delete session file.
+  // 7. Delete session file.
   deleteSession(projectRoot, taskId);
 
-  // 9. Update task status to done on the main repo.
+  // 8. Update task status to done on the main repo.
   try {
     updateTaskStatus(taskFilePath, "done");
   } catch {
