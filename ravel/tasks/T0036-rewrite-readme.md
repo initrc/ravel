@@ -1,7 +1,7 @@
 ---
 id: T0036
 title: Rewrite README
-status: new
+status: done
 dependencies: []
 ---
 

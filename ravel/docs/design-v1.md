@@ -547,7 +547,8 @@ Example:
   "copyCommandByDefault": false,
 
   "mainBranch": "main",
-  "testCommand": "npm test"
+  "testCommand": "npm test",
+  "notifyWhenDone": true
 }
 ```
 
