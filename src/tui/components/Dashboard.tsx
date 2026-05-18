@@ -5,6 +5,7 @@ import { CommandInput } from "./CommandInput.js";
 import { AssignTaskList } from "./AssignTaskList.js";
 import { TaskCollection, type Task } from "../../models/task.js";
 import type { LogEvent } from "../app.js";
+import type { CommandDef } from "../commands.js";
 
 interface DashboardProps {
   tasks: Task[];
@@ -17,6 +18,7 @@ interface DashboardProps {
   assignMode?: boolean;
   assignModeTasks?: Task[];
   assignModeSelectedIndex?: number;
+  commands: CommandDef[];
 }
 
 export function Dashboard({
@@ -30,6 +32,7 @@ export function Dashboard({
   assignMode,
   assignModeTasks = [],
   assignModeSelectedIndex = 0,
+  commands,
 }: DashboardProps) {
   return (
     <Box flexDirection="column" height="100%" padding={1}>
@@ -47,6 +50,7 @@ export function Dashboard({
         onCommand={onCommand}
         disableInput={disableInput || assignMode}
         onAssignMode={onAssignMode}
+        commands={commands}
       />
     </Box>
   );

@@ -1,7 +1,7 @@
 ---
 id: T0024
 title: Add typeahead for slash commands in TUI
-status: new
+status: done
 dependencies: []
 ---
 
@@ -10,7 +10,6 @@ dependencies: []
 Add a typeahead/autocomplete feature for slash commands in the TUI's CommandInput, similar to Claude Code's command palette.
 
 Features:
-- When the input is empty, show a hint to type `/` for commands.
 - When the user types `/`, show a dropdown of available commands.
 - As the user continues typing, filter the list to matching commands.
 - Tab or Enter autocompletes the highlighted command.
@@ -18,7 +17,6 @@ Features:
 
 # Acceptance
 
-- Empty input shows hint: "Type / for commands" (dimmed), in addition to the navigation hint from T0020.
 - Typing `/` reveals a dropdown list of commands: `/assign`, `/config`, `/exit`, `/help`, `/integrate`, `/quit`.
 - Further typing filters commands (e.g., `/a` shows `/assign`).
 - Tab autocompletes to the top (or only) match.

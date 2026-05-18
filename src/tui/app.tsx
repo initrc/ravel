@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { useInput, useApp } from "ink";
 import { Dashboard } from "./components/Dashboard.js";
+import { COMMANDS } from "./commands.js";
 import { RavelWatcher } from "../watcher.js";
 import { TaskCollection, parseTask, type Task } from "../models/task.js";
 import { readSession } from "../models/session.js";
@@ -64,26 +65,26 @@ export type ParsedCommand =
   | { type: "unknown"; raw: string };
 
 export function parseCommand(command: string): ParsedCommand {
-  if (command === "/exit" || command === "/quit") return { type: "exit" };
-  if (command === "/help") return { type: "help" };
-  if (command === "/config") return { type: "config" };
+  const parts = command.trim().split(/\s+/);
+  const cmdName = parts[0];
 
-  if (command.startsWith("/assign")) {
-    const parts = command.trim().split(/\s+/);
+  if (cmdName === "/exit" || cmdName === "/quit") return { type: "exit" };
+  if (cmdName === "/help") return { type: "help" };
+  if (cmdName === "/config") return { type: "config" };
+
+  if (cmdName === "/assign") {
     const taskId = parts[1];
     if (taskId) return { type: "assign", taskId };
-    return { type: "unknown", raw: parts[0] };
+    return { type: "unknown", raw: cmdName };
   }
 
-  if (command.startsWith("/integrate")) {
-    const parts = command.trim().split(/\s+/);
+  if (cmdName === "/integrate") {
     const taskId = parts[1];
     if (taskId) return { type: "integrate", taskId };
-    return { type: "unknown", raw: parts[0] };
+    return { type: "unknown", raw: cmdName };
   }
 
-  const raw = command.trim().split(/\s+/)[0];
-  return { type: "unknown", raw };
+  return { type: "unknown", raw: cmdName || command.trim() };
 }
 
 interface AppProps {
@@ -458,6 +459,7 @@ export function App({ projectRoot, ravelCmd }: AppProps) {
       assignMode={assignMode}
       assignModeTasks={assignableTasks}
       assignModeSelectedIndex={assignModeSelectedIndex}
+      commands={COMMANDS}
     />
   );
 }
