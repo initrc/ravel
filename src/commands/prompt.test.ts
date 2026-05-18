@@ -50,7 +50,7 @@ describe("generatePrompt", () => {
 
   it("includes rebase instruction in LGTM flow", () => {
     const prompt = generatePrompt(makeTask(), "main");
-    expect(prompt).toContain("- rebase onto the main branch");
+    expect(prompt).toContain("- rebase onto local's main branch");
     expect(prompt).toContain(
       "- resolve any conflicts from the rebase and verify the build, all tests and lint passed",
     );
@@ -58,12 +58,14 @@ describe("generatePrompt", () => {
 
   it("does not include the old guard rail about not rebasing", () => {
     const prompt = generatePrompt(makeTask(), "main");
-    expect(prompt).not.toContain("Do not push, merge, rebase, or delete branches");
+    expect(prompt).not.toContain(
+      "Do not push, merge, rebase, or delete branches",
+    );
   });
 
   it("interpolates the main branch name in the rebase instruction", () => {
     const prompt = generatePrompt(makeTask(), "master");
-    expect(prompt).toContain("- rebase onto the master branch");
+    expect(prompt).toContain("- rebase onto local's master branch");
     expect(prompt).toContain(
       "- resolve any conflicts from the rebase and verify the build, all tests and lint passed",
     );

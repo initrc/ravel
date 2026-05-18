@@ -25,7 +25,7 @@ If I later say LGTM:
 - create exactly one local git commit
 - use this commit message format:
   ${task.id}: ${task.title}
-- rebase onto the ${mainBranch} branch
+- rebase onto local's ${mainBranch} branch
 - resolve any conflicts from the rebase and verify the build, all tests and lint passed`;
 }
 
