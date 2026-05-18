@@ -1,7 +1,7 @@
 ---
 id: T0030
 title: Add "make sure all tests and lint passed" to prompt
-status: new
+status: done
 dependencies: []
 ---
 

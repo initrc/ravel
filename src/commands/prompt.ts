@@ -16,6 +16,7 @@ Implement the task described in:
 ravel/tasks/${task.filename}
 
 When the implementation is ready for human review:
+- make sure all tests and lint passed
 - update the task status to review
 - stop and wait for my feedback
 
