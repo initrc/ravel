@@ -85,7 +85,7 @@ export async function promptForClipboard(
   if (copy) {
     await writeClipboard(promptText);
     console.log(
-      "Prompt copied to clipboard — paste it in your AI agent to start.",
+      "\nPrompt copied to clipboard — paste it in your AI agent to start.",
     );
     return;
   }
