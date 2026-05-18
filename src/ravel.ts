@@ -29,8 +29,8 @@ const program = new Command();
 
 program
   .name("ravel")
-  .description("Orchestrator for interactive AI coding sessions")
-  .version("0.1.0");
+  .description("Orchestrator for interactive AI coding")
+  .version("1.0.0");
 
 program
   .command("init")

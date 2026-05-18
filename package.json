@@ -1,13 +1,23 @@
 {
-  "name": "ravel",
-  "version": "0.1.0",
-  "description": "Orchestrator for interactive AI coding sessions",
+  "name": "@initrc/ravel",
+  "version": "1.0.0",
+  "description": "Orchestrator for interactive AI coding",
   "type": "module",
   "bin": {
     "ravel": "./bin/ravel.js"
   },
+  "files": [
+    "bin",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc && mkdir -p bin && cp -r templates bin/",
+    "prepublishOnly": "npm run build",
     "ravel": "node bin/ravel.js",
     "start": "node bin/ravel.js",
     "test": "vitest run",
