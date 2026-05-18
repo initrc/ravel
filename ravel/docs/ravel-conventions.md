@@ -39,6 +39,7 @@ Rules:
 - Use zero-padded task IDs (`T0001`)
 - Use lowercase kebab-case title in filename
 - Keep filenames concise
+- To pick the next task ID, find the highest-numbered task in `ravel/tasks/` and increment (e.g., if T0032 is highest, next is T0033)
 
 ---
 
@@ -75,22 +76,24 @@ status: new
 dependencies: []
 ```
 
-Task body structure:
+Task body structure (all three sections are required):
 
 ```md
 # Scope
 
-- What should be implemented
+- What should be implemented — a concise summary of the change.
 
 # Acceptance
 
-- Concrete success criteria
+- Concrete, verifiable success criteria.
+- When code changes are involved, include that the project builds, passes lint, and all tests pass.
 
 # Implementation Notes
 
-- Technical guidance
-- Constraints
-- Architectural decisions
+- File paths and line numbers the implementer should start from.
+- References to related tasks (e.g., "the rebase instruction was added in T0029").
+- Architectural decisions — which patterns or libraries to adopt and their tradeoffs.
+- Technical constraints or edge cases to watch for.
 ```
 
 ---
@@ -126,5 +129,4 @@ T0003: Apply shadcn ui primitives
 Do not:
 - push to remote
 - merge branches
-- rebase
 - delete worktrees
