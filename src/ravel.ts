@@ -24,13 +24,12 @@ import {
   fmtIntegrationComplete,
 } from "./commands/messages.js";
 
-
 const program = new Command();
 
 program
   .name("ravel")
   .description("Orchestrator for interactive AI coding")
-  .version("1.0.0");
+  .version("1.0.1");
 
 program
   .command("init")
@@ -51,9 +50,7 @@ program
       console.log(fmtAssignBranch(session.branch));
 
       const config = readConfig();
-      const ravelCmd = isOnPath("ravel")
-        ? "ravel"
-        : "node './bin/ravel.js'";
+      const ravelCmd = isOnPath("ravel") ? "ravel" : "node './bin/ravel.js'";
       const worktreeAbs = path.resolve(process.cwd(), session.worktreePath);
       const command = generateLaunchCommand(
         session.taskId,
@@ -153,9 +150,7 @@ program
 // Default: launch TUI (T0007)
 program.action(async () => {
   requireInit();
-  const ravelCmd = isOnPath("ravel")
-    ? "ravel"
-    : "node './bin/ravel.js'";
+  const ravelCmd = isOnPath("ravel") ? "ravel" : "node './bin/ravel.js'";
   const { waitUntilExit } = render(
     createElement(App, { projectRoot: process.cwd(), ravelCmd }),
     { exitOnCtrlC: false },
