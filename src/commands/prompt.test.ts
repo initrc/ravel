@@ -52,7 +52,7 @@ describe("generatePrompt", () => {
     const prompt = generatePrompt(makeTask(), "main");
     expect(prompt).toContain("- rebase onto local's main branch");
     expect(prompt).toContain(
-      "- resolve any conflicts from the rebase and verify the build, all tests and lint passed",
+      "- resolve any conflicts from the rebase (amend resolutions into the existing commit, not a separate commit) and verify the build, all tests and lint passed",
     );
   });
 
@@ -67,7 +67,7 @@ describe("generatePrompt", () => {
     const prompt = generatePrompt(makeTask(), "master");
     expect(prompt).toContain("- rebase onto local's master branch");
     expect(prompt).toContain(
-      "- resolve any conflicts from the rebase and verify the build, all tests and lint passed",
+      "- resolve any conflicts from the rebase (amend resolutions into the existing commit, not a separate commit) and verify the build, all tests and lint passed",
     );
   });
 

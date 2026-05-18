@@ -26,7 +26,7 @@ If I later say LGTM:
 - use this commit message format:
   ${task.id}: ${task.title}
 - rebase onto local's ${mainBranch} branch
-- resolve any conflicts from the rebase and verify the build, all tests and lint passed`;
+- resolve any conflicts from the rebase (amend resolutions into the existing commit, not a separate commit) and verify the build, all tests and lint passed`;
 }
 
 async function waitForKeypress(): Promise<string> {

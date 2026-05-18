@@ -1,7 +1,7 @@
 ---
 id: T0033
 title: Amend rebase conflict resolutions to the commit
-status: new
+status: done
 dependencies: []
 ---
 
