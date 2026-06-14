@@ -99,7 +99,7 @@ Task body structure (all three sections are required):
 ---
 
 ## Dependency Rules
- 
+
 - When creating a new task, do not add any task that is done to the dependencies list.
 - A task is blocked when any dependency is not `done`.
 - Blocked state is computed and should never be written to the task file.
