@@ -1,6 +1,6 @@
 # Ravel
 
-A task orchestration tool for interactive AI coding.
+A task orchestration tool for interactive AI coding
 
 Ravel is named after Maurice Ravel, the French composer and conductor. The tool takes on analogous roles:
 
@@ -81,4 +81,4 @@ Set `testCommand` to `""` to skip tests during integration. `agentCommand` is wh
 
 ## Tech stack
 
-TypeScript (ESM), [Ink](https://github.com/vadimdemedes/ink) (terminal UI), [Commander](https://github.com/tj/commander.js) (CLI), [chokidar](https://github.com/paulmillr/chokidar) (file watching), native git CLI (worktree and branch operations).
+TypeScript (ESM), [Ink](https://github.com/vadimdemedes/ink) (terminal UI), [Commander](https://github.com/tj/commander.js) (CLI), [Chokidar](https://github.com/paulmillr/chokidar) (file watching), native git CLI (worktree and branch operations).
