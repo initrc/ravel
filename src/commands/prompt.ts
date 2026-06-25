@@ -25,8 +25,10 @@ If I later say LGTM:
 - create exactly one local git commit
 - use this commit message format:
   ${task.id}: ${task.title}
-- rebase onto local's ${mainBranch} branch
-- resolve any conflicts from the rebase (amend resolutions into the existing commit, not a separate commit) and verify the build, all tests and lint passed`;
+- rebase onto local's ${mainBranch} branch and merge into it (fast-forward)
+- resolve any conflicts from the rebase (amend resolutions into the existing commit, not a separate commit)
+- once rebased the worktree will be automatically removed by an orchestrator, so navigate to the project's directory and
+  verify the build, all tests and lint passed`;
 }
 
 async function waitForKeypress(): Promise<string> {
