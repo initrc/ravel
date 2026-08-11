@@ -56,6 +56,15 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Language & Comments
+
+Write code and comments in clear, plain English.
+
+- Name things so the name carries the meaning. A good name removes the need for a comment. If a name needs a comment to explain what it really is, fix the name instead.
+- Keep comments succinct. Explain *why*, not *what the code already says*.
+- Avoid jargon and look-it-up words. If a term needs a glossary, it's the wrong term.
+- Match how much comment a thing deserves. Two lines of code rarely need six lines of comment. If the comment is longer than the code and mostly apologizing for it, the code or the name is the problem.
+
 ## Ravel Conventions
 
 Before creating or modifying any tasks or design docs, read `ravel/docs/ravel-conventions.md` and follow those conventions strictly.
