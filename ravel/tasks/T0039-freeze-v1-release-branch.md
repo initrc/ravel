@@ -1,7 +1,7 @@
 ---
 id: T0039
 title: Freeze the v1 release branch
-status: new
+status: done
 dependencies: []
 ---
 
