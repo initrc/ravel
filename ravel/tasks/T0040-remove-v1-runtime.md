@@ -1,7 +1,7 @@
 ---
 id: T0040
 title: Remove the v1 runtime
-status: new
+status: done
 dependencies:
   - T0039
 ---

@@ -74,13 +74,18 @@ Run these from the project root:
 
 | Command | What it does |
 |---|---|
-| `make` | Run `npm run build` from Makefile |
-| `npm run build` | Compile TypeScript (`tsc`) and copy templates into `bin/` |
-| `npm run ravel <command>` | Run the Ravel CLI from the build output |
-| `npm start` | Run the Ravel TUI from the build output |
+| `make` | Run the `build` target in `Makefile`, which delegates to `npm run build` |
+| `npm run build` | Remove stale `bin/` output, compile TypeScript (`tsc`), and copy templates into `bin/` |
+| `npm start` | Run `node bin/ravel.js`; until T0041, this reports that the v2 workflow is unavailable |
 | `npm run lint` | Check for lint errors (`eslint .`) |
 | `npm run lint:fix` | Auto-fix lint errors where possible |
 | `npm test` | Run the full test suite (`vitest run`). Always run this, not a subset — a change that passes its own test file can still break another. |
+
+`npm run <name>` executes the matching entry in `package.json`'s `scripts`
+object. `make` is configured separately in `Makefile`. TypeScript compilation
+settings such as source and output directories are configured in
+`tsconfig.json`. The `package.json` `bin` entry maps the installed `ravel`
+executable to `bin/ravel.js`; it does not control `npm start`.
 
 When the implementation is done, always run:
 
