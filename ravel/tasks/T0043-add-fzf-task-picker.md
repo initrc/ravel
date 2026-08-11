@@ -13,7 +13,7 @@ dependencies:
 
 # Acceptance
 
-- Rows repeat status, task ID, and title and are ordered `done (unmerged)`, `review`, `in-progress`, `new`, then `blocked`.
+- Rows repeat status, task ID, and title and are ordered `merging`, `review`, `in-progress`, `new`, then `blocked`.
 - `fzf` receives `--no-sort`, a header explaining Enter and Escape, and searchable visible text without selectable section headers.
 - The preview shows the complete applicable task file: the active worktree copy when present, otherwise the primary-checkout copy.
 - Hidden selection metadata cannot corrupt visible fields, and preview paths are safely quoted for spaces and shell metacharacters.

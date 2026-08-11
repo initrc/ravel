@@ -15,7 +15,7 @@ dependencies:
 
 - Valid task statuses continue to parse, malformed tasks and missing dependency references fail clearly, and `blocked` is never persisted.
 - Tasks are enumerated from the primary checkout, including dirty or untracked task files, while committed `baseBranch` copies remain authoritative for integration and dependency satisfaction.
-- A base task committed as `done` is hidden; a base `new` task displays live `in-progress`, `review`, or `done (unmerged)` state from its task worktree or unregistered task branch.
+- A base task committed as `done` is hidden; a base `new` task displays live `in-progress`, `review`, or the derived `merging` state for branch status `done` from its task worktree or unregistered task branch.
 - A primary task committed as `in-progress` or `review`, or a registered task branch that has not advanced to `in-progress`, is reported as invalid lifecycle state.
 - Dependents remain blocked until every dependency is committed as `done` on `baseBranch`, regardless of a dependency's live worktree status.
 - Dirty, untracked, or base-divergent task files are visibly marked and cannot be launched.

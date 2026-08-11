@@ -19,6 +19,7 @@ dependencies:
 - Missing Git worktree support or `fzf` is reported before Ravel mutates project files.
 - A v1-shaped config prints the migration procedure from the design and exits without mutation; an unknown `configVersion` reports that version and is not treated as v1.
 - First-run initialization occurs only after confirmation, preserves unrelated file content, creates only the v2 directories, detects the primary worktree's current branch, offers installed agents plus copy-only and custom-command choices, and writes `configVersion: 2`, `agentCommand`, and `baseBranch`.
+- When initialization runs inside tmux, it checks the effective global `allow-passthrough` option, prints setup guidance when it is not `on`, and continues without inspecting or editing tmux configuration; outside tmux the option is not required.
 - A configured `baseBranch` must name an existing local branch, and Ravel never fetches to update it.
 - Initialization returns control to the bare-command workflow so T0043 can open the picker; when no open tasks exist, the command reports that fact.
 - Tests use temporary Git repositories and fake executables rather than requiring an installed `fzf` or agent.

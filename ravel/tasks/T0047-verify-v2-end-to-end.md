@@ -13,12 +13,12 @@ dependencies:
 
 # Acceptance
 
-- Temporary Git repository tests cover root discovery, initialization and migration, all base-versus-live task states, fzf ordering and cancellation, worktree creation and recovery, tmux resume, direct launching, copy-only mode, and prompt safety.
+- Temporary Git repository tests cover root discovery, initialization and migration, tmux passthrough guidance, all base-versus-live task states, fzf ordering and cancellation, worktree creation and recovery, tmux resume, direct launching, copy-only mode, and prompt safety.
 - Test doubles ensure the suite does not require interactive fzf, a tmux server, a real clipboard, or an installed coding agent.
 - `ravel` is the complete documented workflow and exposes no public subcommands.
 - Parallel tasks use separate worktrees, and no Ravel action automatically merges, stashes, pushes, force-deletes, or removes completed worktrees or branches.
 - README migration instructions exactly match executable output and preserve existing `.worktrees/`.
-- Source, dependency, and clean-build audits find no Ink/React TUI, Commander routing, Chokidar watcher, session, integration, notification, or cleanup-command remnants.
+- Source, dependency, and clean-build audits find no Ink/React TUI, Commander routing, Chokidar watcher, session, automatic integration, Ravel-owned notification, or cleanup-command remnants; the installed agent notification conventions remain present.
 - A package dry run shows only the intended v2 files and correct `2.0.0` metadata.
 - The project builds successfully, `npm run lint` passes, and `npm test` passes in full.
 

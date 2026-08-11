@@ -32,7 +32,7 @@ Ravel v2 remains published as the `@initrc/ravel` npm package.
 
 - Backwards compatibility with v1 commands, configuration, or runtime state.
 - Automatic integration, stashing, conflict resolution, or cleanup.
-- Background file watching or notifications.
+- Background file watching or Ravel-owned notifications.
 - Headless agent execution.
 - Agent model or permission configuration.
 - Global project discovery outside the current Git repository.
@@ -180,7 +180,11 @@ confirmation before initializing. Initialization:
 4. Adds `.ravel/` and `.worktrees/` to `.gitignore` when missing.
 5. Detects the primary worktree's current branch for `baseBranch`.
 6. Offers installed known agents, copy-only mode, and a custom command.
-7. Writes the minimal v2 config with `configVersion: 2` and continues into the
+7. When invoked inside tmux, checks the running server's
+   `allow-passthrough` global option. If it is not `on`, prints the tmux setup
+   needed for agent-sent terminal notifications without modifying tmux
+   configuration.
+8. Writes the minimal v2 config with `configVersion: 2` and continues into the
    picker.
 
 Initialization does not overwrite an existing conventions file or unrelated
@@ -262,7 +266,7 @@ Ravel reports it instead of inventing another lifecycle path.
 | `new`  | —             | `new` or `blocked` |
 | `new`  | `in-progress` | `in-progress`      |
 | `new`  | `review`      | `review`           |
-| `new`  | `done`        | `done (unmerged)`  |
+| `new`  | `done`        | `merging`          |
 | `done` | `done`        | hidden             |
 | `done` | —             | hidden             |
 
@@ -273,7 +277,12 @@ The user only needs to paste the prompt into the running agent.
 
 V2 differs from v1 in three ways:
 
-- Worktree `done` remains visible as `done (unmerged)` until main is updated.
+- Worktree `done` is displayed as `merging` until main is updated. This is a
+  derived UI state, not a persisted task status. It covers the agent's entire
+  post-approval integration phase: committing, rebasing, resolving conflicts,
+  verifying, validating the primary checkout, and fast-forwarding. If that
+  work is interrupted or fails, `merging` remains visible so the user can
+  resume it.
 - Both UI display and launch validation use committed main statuses for
   dependencies, eliminating v1's appear-assignable-then-reject mismatch.
 - V1 uses `.ravel/sessions/T0001.json` to map a task to a worktree path, then
@@ -342,7 +351,7 @@ blocked           T0010     Publish v2
 Rows are ordered by state and passed with `--no-sort` so filtering preserves
 the groups:
 
-1. `done (unmerged)`
+1. `merging`
 2. `review`
 3. `in-progress`
 4. `new`
@@ -392,7 +401,7 @@ that failed operation; it never removes pre-existing state.
 
 ## Resuming a Task
 
-Selecting `in-progress`, `review`, or `done (unmerged)` resumes existing work
+Selecting `in-progress`, `review`, or `merging` resumes existing work
 instead of assigning it again.
 
 Inside tmux, Ravel searches the current session for a window tagged with both
@@ -470,8 +479,10 @@ It instructs the agent to follow this lifecycle.
 1. Implement only the selected task.
 2. Run the verification required by the task and repository instructions.
 3. Update the worktree task status to `review`.
-4. Do not commit, merge, or clean up.
-5. Stop and wait for explicit `LGTM`.
+4. Send the best-effort "ready for review" terminal notification documented in
+   the installed Ravel conventions.
+5. Do not commit, merge, or clean up.
+6. Stop and wait for explicit `LGTM`.
 
 ### After explicit `LGTM`
 
@@ -489,7 +500,9 @@ It instructs the agent to follow this lifecycle.
 6. Verify that the primary checkout is clean and currently has `baseBranch`
    checked out.
 7. Fast-forward the primary checkout to the task branch.
-8. Report success and give the user the exact safe cleanup commands.
+8. Send the best-effort "merged" terminal notification documented in the
+   installed Ravel conventions.
+9. Report success and give the user the exact safe cleanup commands.
 
 The agent must never:
 
@@ -502,7 +515,7 @@ The agent must never:
 If rebase, verification, or primary-checkout validation fails, the agent stops
 and reports the issue. The intact task branch remains visible in Ravel. A task
 whose branch status is `done` but whose base copy is not is displayed as
-`done (unmerged)` so a failed integration cannot disappear from the UI.
+`merging` so a failed integration cannot disappear from the UI.
 
 The installed Ravel conventions and generated `AGENTS.md` guidance must match
 this workflow. They continue to prohibit pushing and worktree deletion, but
@@ -532,10 +545,55 @@ There is no cleanup subcommand or fzf cleanup key in v2.
 
 ## Notifications
 
-Ravel provides no notifications. It has no watcher or background process from
-which to send them. Agent- or terminal-provided idle notifications remain
-independent of Ravel and may be used inside or outside tmux when supported by
-the user's environment.
+Ravel has no watcher or background process from which to send notifications.
+Instead, the installed conventions instruct the interactive agent to emit a
+best-effort terminal notification at the two points that require user
+attention:
+
+- When implementation and verification are ready for review.
+- After the task branch has been successfully fast-forwarded into
+  `baseBranch`.
+
+Assignment does not notify. Initialization, the picker header, and the copied
+prompt already teach the user to paste the prompt into the launched agent, and
+repeating that notification for every task would add noise without reporting a
+completed or blocked transition.
+
+For terminals that support OSC 9, the conventions use these output-only shell
+commands, substituting the task ID in each message:
+
+```sh
+# Ready for review, outside tmux
+printf '\033]9;Ravel: T0001 ready for review\007'
+
+# Ready for review, inside tmux
+printf '\033Ptmux;\033\033]9;Ravel: T0001 ready for review\007\033\\'
+
+# Merged, outside tmux
+printf '\033]9;Ravel: T0001 merged\007'
+
+# Merged, inside tmux
+printf '\033Ptmux;\033\033]9;Ravel: T0001 merged\007\033\\'
+```
+
+The agent selects the variant according to whether `$TMUX` is set.
+Notification failure never changes task status or blocks the workflow; the
+agent still reports the transition in its normal response. These are ordinary
+`printf` commands and will not normally need elevated permission, but Ravel
+cannot guarantee another agent's command approval policy or the terminal's OSC
+support.
+
+tmux must allow escape-sequence passthrough. The README tells tmux users to add
+this line to `~/.tmux.conf` or their configured tmux config file:
+
+```tmux
+set -g allow-passthrough on
+```
+
+They can apply it to a running server with `tmux set -g allow-passthrough on`.
+During initialization inside tmux, Ravel checks the effective value with
+`tmux show-options -gqv allow-passthrough`. If it is not `on`, Ravel prints the
+setup instructions and continues; it does not inspect or edit dotfiles.
 
 ## Removed v1 Surface
 
@@ -548,7 +606,7 @@ The v2 implementation removes:
 - Chokidar file watching and event models.
 - Session JSON and logs.
 - Automatic rebase, test, merge, stash, and cleanup code.
-- Ravel integration notifications.
+- Ravel-owned integration notification code and configuration.
 - Clipboard-choice state and all obsolete config fields.
 
 The implementation retains and simplifies:
@@ -571,7 +629,8 @@ Expected runtime dependencies are `clipboardy`, `gray-matter`, and `zod`.
 4. Add the `fzf` adapter and preview/selection record format.
 5. Add primary-root discovery, worktree creation/recovery, and launch
    validation.
-6. Add prompt generation plus tmux and direct-terminal launchers.
+6. Add prompt generation, best-effort agent notification instructions, and
+   tmux and direct-terminal launchers.
 7. Update the conventions template, generated `AGENTS.md` guidance, README,
    package metadata, and dependencies. The README must include the v1 migration
    procedure printed by the executable.
@@ -592,6 +651,8 @@ require an interactive fzf, tmux server, clipboard, or installed agent.
   worktree.
 - Reject invocation outside Git.
 - Initialize only after confirmation and preserve unrelated existing files.
+- Inside tmux, report a disabled `allow-passthrough` option with setup guidance
+  without editing tmux configuration; do not require the option outside tmux.
 - Detect the base branch and each supported agent choice, including `null` and
   a custom command.
 - Write `configVersion: 2` and accept supported v2 configuration.
@@ -608,7 +669,7 @@ require an interactive fzf, tmux server, clipboard, or installed agent.
   accepting them in task branches/worktrees.
 - Exclude tasks committed as `done` on `baseBranch`.
 - Display worktree `in-progress` and `review` states over a base `new` task.
-- Display branch `done` over base `new` as `done (unmerged)`.
+- Display branch `done` over base `new` as the derived `merging` state.
 - Keep dependent tasks blocked until the dependency is committed as `done` on
   `baseBranch`.
 - Preserve state-group ordering during filtering and preview the correct file.
@@ -632,7 +693,10 @@ require an interactive fzf, tmux server, clipboard, or installed agent.
 - Outside tmux, inherit terminal streams and use the worktree as `cwd`.
 - In copy-only mode, print the prompt, confirmation, and exact `cd` command.
 - Verify that the prompt contains the review gate, conservative integration
-  preconditions, failure behavior, and manual cleanup instructions.
+  preconditions, a concise instruction to follow the installed notification
+  convention, failure behavior, and manual cleanup instructions.
+- Verify that the installed conventions contain both lifecycle triggers and
+  the exact tmux and non-tmux notification commands.
 
 ### Acceptance
 
@@ -640,10 +704,11 @@ require an interactive fzf, tmux server, clipboard, or installed agent.
   subcommands.
 - README migration instructions match the v1-detection output and preserve
   existing `.worktrees/`.
+- README documents OSC 9 terminal support, both tmux and non-tmux notification
+  paths, and the `allow-passthrough` setup.
 - Parallel task agents operate in separate worktrees.
 - No Ravel action automatically merges, stashes, pushes, deletes user state,
   or removes a completed worktree.
 - The package builds successfully.
 - `npm run lint` passes.
 - `npm test` passes in full.
-

@@ -10,12 +10,13 @@ dependencies:
 # Scope
 
 - Connect picker selection and worktree resolution to prompt generation, clipboard copy, tmux window creation or resume, direct-terminal launching, and copy-only behavior.
-- Implement an agent prompt that enforces the v2 review gate, conservative post-approval integration, failure handling, and manual cleanup workflow.
+- Implement an agent prompt that enforces the v2 review gate, conservative post-approval integration, best-effort terminal notifications, failure handling, and manual cleanup workflow.
 
 # Acceptance
 
 - Starting a new task writes `in-progress`, copies its prompt without a second question, and launches in the resolved worktree.
-- The prompt includes the task ID and file, task branch and worktree context, absolute primary root, configured `baseBranch`, pre-review instructions, the explicit `LGTM` gate, exact one-commit format, local rebase and fast-forward preconditions, verification after rebase, failure behavior, prohibited actions, and safe manual cleanup commands.
+- The prompt includes the task ID and file, task branch and worktree context, absolute primary root, configured `baseBranch`, pre-review instructions, the explicit `LGTM` gate, exact one-commit format, local rebase and fast-forward preconditions, verification after rebase, failure behavior, prohibited actions, safe manual cleanup commands, and a concise instruction to follow the notification rules in the installed Ravel conventions.
+- The agent is instructed to notify when work is ready for review and after a successful fast-forward, choose the command based on `$TMUX`, treat notification failure as non-blocking, and not notify merely because a task was assigned.
 - Inside tmux, Ravel creates a current-session window named for the task ID at the worktree path, disables automatic rename, and tags it with `@ravel_project_root` and `@ravel_task_id`.
 - Resuming finds a window only when both tags match, selects it without replacing the clipboard, and never switches tmux sessions; a missing matching window recopies the prompt and creates one.
 - Outside tmux, a configured agent command runs interactively with inherited standard streams and the worktree as `cwd`, and Ravel waits for it to exit.
