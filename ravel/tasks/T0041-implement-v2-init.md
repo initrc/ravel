@@ -1,7 +1,7 @@
 ---
 id: T0041
 title: Implement v2 initialization
-status: new
+status: done
 dependencies: []
 ---
 
