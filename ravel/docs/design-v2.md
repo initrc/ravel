@@ -2,194 +2,182 @@
 
 ## Overview
 
-Ravel v2 is a local task picker and launcher for interactive AI coding sessions.
+Ravel v2 is a small task orchestrator for interactive AI coding sessions.
 
-It keeps Ravel's repository-local Markdown tasks, dependency parsing, Git
-worktree isolation, and human review workflow. It replaces the custom Ink TUI,
-command suite, file watcher, session registry, integration engine, and
-notification system with a single `fzf`-based workflow.
+Ravel owns the repository-local task format, dependency checks, task selection,
+and the task prompt. [workmux](https://github.com/raine/workmux) owns Git
+worktrees, multiplexer windows, agent launching, shared files, merging, and
+cleanup.
 
-The user runs `ravel`, selects an open task, and receives an isolated agent
-session in that task's worktree. The agent owns implementation and local
-integration after explicit approval. The user owns worktree cleanup.
+This boundary avoids duplicating workmux's lifecycle and configuration. Ravel
+does not keep runtime state or configuration of its own.
 
 Ravel v2 remains published as the `@initrc/ravel` npm package.
 
 ## Goals
 
-- Make bare `ravel` the complete user-facing workflow.
+- Keep Markdown tasks and design docs as the source of truth for planned work.
+- Make bare `ravel` the task picker and launcher.
+- Keep `ravel init` for installing the Ravel planning structure and agent
+  instructions.
+- Add `ravel doctor` for explicit, actionable prerequisite diagnostics.
 - Use `fzf` for task filtering, selection, and preview.
-- Preserve safe parallel work through one Git worktree per task.
-- Launch or resume task sessions in tmux when invoked inside tmux.
-- Remain useful outside tmux by launching the agent in the current terminal.
-- Keep committed task files as the source of truth for integration and
-  dependencies.
-- Leave rebasing, merging, and conflict resolution to the interactive agent.
-- Leave worktree and branch deletion to the user.
-- Remove runtime machinery that is not required by this workflow.
+- Pass a task-specific prompt to workmux when the recommended workflow is
+  available.
+- Remain useful without workmux or tmux by copying and printing the prompt for
+  a manually opened agent.
+- Preserve the existing Ravel conventions and human review gate.
 
 ## Non-goals
 
 - Backwards compatibility with v1 commands, configuration, or runtime state.
-- Automatic integration, stashing, conflict resolution, or cleanup.
-- Background file watching or Ravel-owned notifications.
+- Managing Git branches or worktrees.
+- Managing tmux windows or agent processes.
+- Reimplementing workmux file copy, symlink, hook, merge, or cleanup behavior.
+- Keeping `.ravel/` configuration, sessions, logs, or other runtime state.
+- Configuring an agent, main branch, worktree location, or test command.
+- Watching task files or displaying a live dashboard.
+- Ravel-owned integration, stashing, conflict resolution, or background
+  notifications.
 - Headless agent execution.
-- Agent model or permission configuration.
-- Global project discovery outside the current Git repository.
 - Windows support in v2.
 
 ## Version Preservation
 
-Before v2 implementation changes begin:
+Before v2 implementation changes began:
 
-1. Create branch `v1` at the existing `v1.0.3` tag.
-2. Push `v1` to `origin`.
-3. Treat `v1` as a frozen snapshot; do not develop on it.
-4. Continue v2 development on `main` and release it as `2.0.0`.
+1. Branch `v1` was created at the existing `v1.0.3` tag.
+2. The branch was pushed to `origin`.
+3. `v1` became a frozen snapshot; v2 development continues on `main`.
 
-The existing `v1.0.3` tag remains unchanged.
+The existing `v1.0.3` tag remains unchanged, and v2 will be released as
+`2.0.0`.
 
 ## Requirements
 
-Ravel v2 supports macOS and Linux and requires:
+Ravel v2 supports macOS and Linux. Node.js is required to run the package, and
+`fzf` is the only mandatory external command.
 
-- Node.js
-- Git with worktree support
-- `fzf`
+Git, tmux, and workmux are recommended for the full parallel workflow. Without
+any one of them, Ravel still generates and copies a prompt for manual use.
 
-tmux is optional. Clipboard support continues through `clipboardy`.
+Clipboard support continues through `clipboardy`. A clipboard failure does not
+lose the task prompt because Ravel also prints it in manual mode.
 
-If a required executable is missing, Ravel exits before making changes and
-names the missing prerequisite.
+## Public Interface
+
+```txt
+ravel
+ravel init
+ravel doctor
+ravel --help
+ravel --version
+```
+
+There are no `assign`, `prompt`, `integrate`, or `cleanup` subcommands.
+
+Unknown arguments or subcommands fail with a short usage message.
 
 ## Repository Layout
 
 ```txt
 project-root/
-├── ravel/
-│   ├── docs/
-│   │   └── ravel-conventions.md
-│   └── tasks/
-│       └── T0001-example-task.md
-├── .ravel/
-│   └── config.json
-└── .worktrees/
-    └── T0001/
+└── ravel/
+    ├── docs/
+    │   └── ravel-conventions.md
+    └── tasks/
+        └── T0001-example-task.md
 ```
 
-`ravel/` contains committed planning artifacts. `.ravel/` contains only local
-configuration. `.worktrees/` contains linked worktrees. Both `.ravel/` and
-`.worktrees/` are gitignored.
+Ravel creates no ignored project-local directory. In particular, v2 never
+creates `.ravel/` or `.worktrees/`. Workmux chooses and manages its own
+worktree location.
 
-There are no `.ravel/sessions/` or `.ravel/logs/` directories in v2. Git's
-worktree registry and tmux window metadata provide the runtime state Ravel
-needs.
+## Initialization
 
-## Configuration
+`ravel init` operates on the current directory and is idempotent. It:
 
-`.ravel/config.json` has a schema marker and two user settings:
-
-```json
-{
-  "configVersion": 2,
-  "agentCommand": "codex",
-  "baseBranch": "main"
-}
-```
-
-### `configVersion`
-
-- Identifies the configuration schema, not the installed package version.
-- Is written as `2` by Ravel v2.
-- Allows later releases to distinguish compatible configuration from a schema
-  that requires an explicit migration.
-- Is not changed for ordinary package releases that keep the same schema.
-
-### `agentCommand`
-
-- A shell command launches the user's interactive coding agent.
-- `null` enables copy-only mode.
-- The value is trusted local configuration and may include arguments.
-
-### `baseBranch`
-
-- Names the local branch from which task branches are created and into which
-  approved work is fast-forwarded.
-- Initialization defaults it to the branch checked out in the primary
-  worktree.
-- It must name an existing local branch.
-- Ravel never fetches a remote branch to update it.
-
-The v1 settings `copyCommandByDefault`, `mainBranch`, `testCommand`, and
-`notifyWhenDone` are removed. There is no config UI. Users may edit the JSON
-file directly.
-
-### Migrating from v1
-
-V1 configuration has no version marker. Ravel detects it structurally when a
-config lacks `configVersion` and contains v1-only fields such as `mainBranch`,
-`testCommand`, or `notifyWhenDone`.
-
-Ravel does not mutate a v1 project automatically. It prints the migration
-steps and exits:
-
-```txt
-Ravel v1 configuration detected.
-
-To migrate this project to Ravel v2:
-1. Remove the .ravel/ directory.
-2. Remove only the "## Ravel Conventions" section from AGENTS.md.
-3. Remove ravel/docs/ravel-conventions.md so v2 can install its new conventions.
-4. Run ravel again and confirm initialization.
-
-See the "Migrating from v1" section in README.md for details.
-```
-
-The README migration section must include the same steps, explain that
-`.ravel/` contains only v1 local runtime state and configuration, and warn the
-user not to delete `.worktrees/`. Existing registered worktrees and their
-branches remain discoverable by v2 after initialization.
-
-If `configVersion` is present but unsupported, Ravel reports the version and
-exits without changing files. It must not treat unknown schemas as v1.
-
-## Entrypoint and Initialization
-
-The public interface is:
-
-```txt
-ravel
-ravel --help
-ravel --version
-```
-
-There are no public subcommands.
-
-Ravel accepts invocation from any directory inside the primary checkout or
-one of its linked worktrees. It uses Git's common directory and worktree
-registry to resolve the primary project root. Invocation outside a Git
-repository exits with a clear error.
-
-Ravel checks for a v1-shaped or unsupported config before normal
-initialization. When `.ravel/config.json` is missing, bare `ravel` asks for
-confirmation before initializing. Initialization:
-
-1. Creates `ravel/docs/`, `ravel/tasks/`, and `.ravel/` when missing.
+1. Creates `ravel/docs/` and `ravel/tasks/` when missing.
 2. Installs `ravel/docs/ravel-conventions.md` when missing.
-3. Creates or updates the Ravel section of `AGENTS.md`.
-4. Adds `.ravel/` and `.worktrees/` to `.gitignore` when missing.
-5. Detects the primary worktree's current branch for `baseBranch`.
-6. Offers installed known agents, copy-only mode, and a custom command.
-7. When invoked inside tmux, checks the running server's
-   `allow-passthrough` global option. If it is not `on`, prints the tmux setup
-   needed for agent-sent terminal notifications without modifying tmux
-   configuration.
-8. Writes the minimal v2 config with `configVersion: 2` and continues into the
-   picker.
+3. Creates or updates only the `## Ravel Conventions` section of `AGENTS.md`.
 
-Initialization does not overwrite an existing conventions file or unrelated
-content in `AGENTS.md` or `.gitignore`. If there are no open tasks after
-initialization, Ravel prints that fact instead of opening an empty picker.
+Initialization preserves an existing conventions file and unrelated
+`AGENTS.md` content. It does not create configuration, edit `.gitignore`,
+inspect Git, select an agent, or initialize workmux.
+
+Bare `ravel` does not initialize implicitly. If it cannot find an initialized
+Ravel project, it tells the user to run `ravel init`.
+
+The existing conventions template and generated `AGENTS.md` section remain
+valid for v2. The lifecycle-specific behavior belongs in the prompt generated
+for a selected task, not in the general conventions.
+
+## Doctor
+
+`ravel doctor` runs a list of independent checks. Each check has:
+
+- A stable name.
+- A level: `mandatory` or `recommended`.
+- A command and arguments executed without a shell.
+- A result containing success or failure and the command's captured output.
+
+Each check lives in its own module. A small runner filters checks by level,
+runs them in a stable order, prints the result of every requested check, and
+returns the collected results. The CLI decides the process exit code from
+those results.
+
+The initial checks are:
+
+| Check | Command | Level | Reason |
+| --- | --- | --- | --- |
+| fzf | `fzf --version` | mandatory | The task picker cannot run without it. |
+| Git | `git --version` | recommended | Enables registered-worktree discovery and is required by workmux. |
+| tmux | `tmux -V` | recommended | Enables the intended interactive workmux window workflow. |
+| tmux passthrough | `tmux show-options -gqv allow-passthrough` | recommended | Lets agent-sent terminal notifications escape tmux. |
+| workmux | `workmux --version` | recommended | Enables automatic worktree and agent launching. |
+
+A missing command and a non-zero command exit are failed checks. Successful
+and failed command output is preserved so `ravel doctor` can show useful
+version or error details.
+
+The tmux passthrough check runs only when `$TMUX` is set. Outside tmux it is
+reported as not applicable. Inside tmux, `all` passes; `on` is reported as a
+limited warning because tmux passes sequences only from visible panes, and
+`off` or an empty value fails the recommended check. Ravel prints:
+
+```tmux
+set -g allow-passthrough all
+```
+
+and the live-server equivalent:
+
+```sh
+tmux set -g allow-passthrough all
+```
+
+Ravel never edits tmux configuration. `all` is preferred over `on` because a
+workmux agent often becomes ready while its pane is not visible.
+
+`ravel doctor` runs all checks. It exits with status 1 when any mandatory
+check fails and status 0 otherwise. Recommended failures are warnings and do
+not change the exit status.
+
+Bare `ravel` first uses the same doctor runner for mandatory checks only. This
+fast preflight happens before task parsing or `fzf`. A mandatory failure is
+printed and exits with status 1. Successful checks need not add noise to the
+normal picker flow.
+
+## Project Discovery
+
+Bare `ravel` searches from the current directory upward for `ravel/tasks/`.
+This works without Git and supplies the local project root for manual prompt
+mode.
+
+When Git is available, Ravel runs `git worktree list --porcelain -z` from that
+root. The first record identifies the primary worktree, which becomes the
+source of the base task collection even when Ravel was invoked from a linked
+worktree. Ravel does not infer or configure a main branch; workmux remains
+responsible for its base and merge branches.
 
 ## Task Model
 
@@ -203,512 +191,379 @@ dependencies: []
 ```
 
 Persisted statuses are `new`, `in-progress`, `review`, and `done`. `blocked`
-remains computed and is never written to a task file.
+is computed and is never written to a task file.
 
-### Two status views
+Ravel loads task definitions from the primary worktree when Git discovery is
+available, or the locally discovered project otherwise. The primary copy is
+authoritative for dependency completion and whether a task has been merged.
+A dependency is satisfied only when its primary task status is `done`.
+Missing dependency references and malformed task files are validation errors.
 
-Ravel distinguishes integration state from live worktree state:
-
-- The task committed on `baseBranch` determines whether work is integrated and
-  whether dependencies are satisfied.
-- The matching task branch or worktree copy determines the active task's live
-  display state.
-
-This distinction prevents a dependency from becoming runnable merely because
-its prerequisite is marked `done` on an unmerged branch.
-
-Although all four values are valid in a task file, the Ravel-managed workflow
-writes only `new` and `done` in the primary checkout. `in-progress` and
-`review` exist only on the task branch. In the following tables, an em dash in
-the Worktree column means that no task worktree or unmerged task branch exists;
-it is not a task status.
-
-### V1 status resolution
-
-V1 first loads the main task objects, then mutates them with the matching
-worktree status when an active session JSON file exists. The TUI columns use
-that resulting status.
-
-| Main   | Worktree      | V1 UI              |
-|--------|---------------|--------------------|
-| `new`  | —             | `new` or `blocked` |
-| `new`  | `in-progress` | `in-progress`      |
-| `new`  | `review`      | `review`           |
-| `new`  | `done`        | hidden             |
-| `done` | `done`        | hidden             |
-| `done` | —             | hidden             |
-
-V1 assignment creates the worktree and immediately writes `in-progress` there
-before returning the launch command to the user. The agent does not set that
-status. This deliberately makes the assigned task visible during the gap in
-which the user must paste the command into another terminal and launch the
-agent. The agent later writes `review` and `done` in the worktree. Integration
-fast-forwards the `done` task onto main, removes the worktree, and leaves the
-main copy as `done`.
-
-For a resulting `new` status, v1 computes `blocked` from the same mutated task
-collection. A dependency marked `done` only in its worktree therefore makes a
-dependent task appear unblocked and selectable in the TUI before integration.
-The subsequent `assignCommand` reloads tasks from main without the overlays and
-rejects that selection as blocked. A resulting `done` status has no dashboard
-column and is hidden while the TUI starts automatic integration.
-
-### V2 status resolution
-
-V2 makes committed main state authoritative for integration. Main `done`
-always hides the task, even if a completed worktree still exists. When main is
-`new`, active worktree or branch state supplies the live UI status. A primary
-task committed as `in-progress` or `review` is invalid Ravel-managed state;
-Ravel reports it instead of inventing another lifecycle path.
-
-| Main   | Worktree      | V2 UI              |
-|--------|---------------|--------------------|
-| `new`  | —             | `new` or `blocked` |
-| `new`  | `in-progress` | `in-progress`      |
-| `new`  | `review`      | `review`           |
-| `new`  | `done`        | `merging`          |
-| `done` | `done`        | hidden             |
-| `done` | —             | hidden             |
-
-V2 retains the useful v1 assignment behavior but removes the launch gap:
-after creating the worktree, Ravel writes `in-progress`, copies the prompt,
-and directly launches the agent in a new tmux window or the current terminal.
-The user only needs to paste the prompt into the running agent.
-
-V2 differs from v1 in three ways:
-
-- Worktree `done` is displayed as `merging` until main is updated. This is a
-  derived UI state, not a persisted task status. It covers the agent's entire
-  post-approval integration phase: committing, rebasing, resolving conflicts,
-  verifying, validating the primary checkout, and fast-forwarding. If that
-  work is interrupted or fails, `merging` remains visible so the user can
-  resume it.
-- Both UI display and launch validation use committed main statuses for
-  dependencies, eliminating v1's appear-assignable-then-reject mismatch.
-- V1 uses `.ravel/sessions/T0001.json` to map a task to a worktree path, then
-  keeps the TUI current by watching the main and worktree task files. V2 has no
-  runtime mapping or watcher: each `ravel` invocation queries
-  `git worktree list --porcelain`, matches the task's derived branch, and reads
-  the relevant task frontmatter once when building the picker.
-
-Git does not contain a separate Ravel status. Task frontmatter remains the
-status store in both versions. In v2, Git supplies the registered worktree
-location, branch relationship, and committed `baseBranch` copy used to decide
-whether work is integrated and dependencies are satisfied. The active
-worktree or task-branch copy supplies the live display status. Because the
-picker is a fresh scan rather than a watched dashboard, changes made while it
-is open appear the next time the user runs `ravel`.
-
-A task is shown as `blocked` only when main is `new`, there is no active task
-branch/worktree, and one or more dependencies are not committed as `done` on
-`baseBranch`. Missing dependency references remain validation errors. A
-registered task branch whose task status has not advanced to `in-progress` is
-invalid partial assignment state; Ravel reports it instead of treating it as a
-normal picker state.
-
-Ravel enumerates task files from the primary checkout so newly authored files
-remain visible. A dirty or untracked task is marked in the picker, but it
-cannot be launched until its file is committed and identical on `baseBranch`.
-This avoids creating a worktree with a missing or older task description.
-
-## Git State Discovery
-
-Ravel does not create session JSON. For every task it derives:
-
-- Branch: the task filename without `.md`, for example
-  `T0001-example-task`.
-- Canonical worktree path: `.worktrees/T0001`.
-
-`git worktree list --porcelain` is authoritative for registered worktree
-locations. When the task branch is checked out in a registered worktree,
-Ravel reads the task copy there. When the branch exists without a worktree,
-Ravel may read its task status from the branch and reattach it at the canonical
-path when selected.
-
-Ravel must not silently replace ambiguous or unsafe Git state:
-
-- A canonical directory that is not a registered worktree is an error.
-- A task branch checked out in another registered path uses that path.
-- A branch or worktree that cannot be mapped unambiguously to the task is an
-  error with recovery guidance.
-- Ravel never force-removes a worktree or force-deletes a branch.
-
-## fzf Interface
-
-Bare `ravel` starts one `fzf` process populated with every task not committed
-as `done` on `baseBranch`.
-
-Each row displays:
+For each task, Ravel derives the branch name from the task filename without
+`.md`. It matches that exact branch against the records from:
 
 ```txt
-STATUS            TASK ID   TITLE
+git worktree list --porcelain -z
+```
+
+Each record supplies an absolute `worktree` path and, for attached branches,
+`branch refs/heads/<branch-name>`. When a matching registered worktree exists,
+Ravel reads the corresponding task file at that path and uses its status and
+file contents as the live view. This works with workmux's default sibling
+directory and any custom global or project `worktree_dir`; Ravel never guesses
+the path or reads workmux configuration.
+
+The resolved picker state is:
+
+| Primary task | Matching worktree task | Picker state |
+| --- | --- | --- |
+| `new` | none | `new` or `blocked` |
+| `new` | `in-progress` | `in-progress` |
+| `new` | `review` | `review` |
+| `new` | `done` | `ready-to-merge` |
+| `done` | any or none | hidden |
+
+`ready-to-merge` is derived and is never persisted. It means the approved task
+commit exists but has not yet been integrated into the primary task
+collection. It also keeps interrupted rebase, verification, or merge work
+visible. A missing task file in a matching registered worktree is an invalid
+state reported with the branch and path. Detached and unrelated worktrees are
+ignored.
+
+## fzf Task Picker
+
+After the mandatory preflight and task-state resolution, bare `ravel` starts
+one ordinary `fzf` process populated with every task not merged as `done` in
+the primary task collection.
+
+Each row contains searchable status, task ID, and title:
+
+```txt
+ready-to-merge    T0006     Add doctor checks
 review            T0007     Add task picker
-in-progress       T0008     Add tmux launcher
+in-progress       T0008     Add doctor checks
 new               T0009     Rewrite README
 blocked           T0010     Publish v2
 ```
 
-Rows are ordered by state and passed with `--no-sort` so filtering preserves
-the groups:
+Rows are grouped in this order and passed with `--no-sort`:
 
-1. `merging`
+1. `ready-to-merge`
 2. `review`
 3. `in-progress`
 4. `new`
 5. `blocked`
 
-The status prefix is repeated on every row instead of inserting selectable
-section-header rows. Search matches status, task ID, and title.
+The preview shows the complete worktree task file when one is registered for
+the task branch, otherwise the primary task file. Ravel keeps the resolved
+file path in hidden selection data and quotes it safely in the preview command.
 
-The preview pane shows the complete applicable task file: the active worktree
-copy when present, otherwise the primary checkout copy. Ravel passes the file
-path as hidden selection data and quotes it safely in the preview command.
+The header explains that Enter selects and Escape cancels. Cancellation or an
+empty selection exits successfully without copying a prompt or invoking
+workmux.
 
-The header explains:
+Selecting a blocked task does not copy a prompt or invoke workmux. Ravel
+names every incomplete dependency and exits unsuccessfully. If there are no
+open tasks, Ravel reports that fact instead of starting an empty picker.
 
-- Enter launches or resumes a task.
-- Escape exits without making changes and therefore serves as a status-only
-  check.
+Selecting a `ready-to-merge` task does not generate or copy a new implementation
+prompt. With workmux available, Ravel reopens its existing worktree window
+without a prompt so the user can inspect or resume the interrupted integration.
+Without workmux, Ravel prints the task branch and registered path.
 
-Selecting a blocked task does not create Git or tmux state. Ravel exits with a
-message listing the incomplete dependencies.
+## Prompt Generation
 
-## Starting a New Task
+Ravel derives the workmux branch name from the task filename without `.md`,
+for example `T0001-example-task`.
 
-Before mutation, Ravel validates that:
-
-- The task is not blocked.
-- Its task file is committed and unchanged on `baseBranch`.
-- `baseBranch` exists.
-- No conflicting branch, worktree registration, or filesystem path exists.
-
-Ravel then:
-
-1. Creates the branch and worktree atomically from `baseBranch`:
-
-   ```txt
-   git worktree add -b T0001-example-task .worktrees/T0001 main
-   ```
-
-2. Updates only the worktree task copy to `in-progress`.
-3. Generates and copies the agent prompt without asking a second clipboard
-   question.
-4. Launches the configured agent or copy-only shell behavior.
-
-The task file in the primary checkout remains untouched. If worktree creation
-or the status update fails, Ravel cleans up only the branch/worktree created by
-that failed operation; it never removes pre-existing state.
-
-## Resuming a Task
-
-Selecting `in-progress`, `review`, or `merging` resumes existing work
-instead of assigning it again.
-
-Inside tmux, Ravel searches the current session for a window tagged with both
-the primary project root and task ID:
-
-```txt
-@ravel_project_root
-@ravel_task_id
-```
-
-If found, Ravel selects that window and does not replace the clipboard. If no
-tagged window exists, it recopies the prompt and creates a window in the
-existing worktree. Ravel does not switch to another tmux session; the expected
-model is one project per tmux session.
-
-Outside tmux, selecting an active task launches the configured agent directly
-in its existing worktree.
-
-## tmux Launching
-
-When `$TMUX` is set, Ravel creates a window in the current session with:
-
-- Working directory set to the task worktree.
-- Window name set to the task ID, for example `T0001`.
-- Automatic renaming disabled.
-- Project-root and task-ID window tags set for later resume.
-
-Conceptually, the launch is:
-
-```sh
-tmux new-window -n "T0001" -c "/absolute/path/.worktrees/T0001" "codex"
-```
-
-If `agentCommand` is `null`, the new window opens the user's shell in the
-worktree, prints the generated prompt and copy confirmation, and leaves the
-prompt on the clipboard.
-
-Ravel invokes ordinary `fzf`; it does not request fzf's tmux popup mode. Users
-who want a popup bind Ravel through tmux:
-
-```tmux
-bind-key r display-popup -E -w 90% -h 85% -d '#{pane_current_path}' 'ravel'
-```
-
-Because Ravel resolves the primary checkout through Git, this binding works
-from any pane directory inside the project or one of its worktrees.
-
-## Non-tmux Launching
-
-When `$TMUX` is absent and `agentCommand` is configured, Ravel starts the
-command as an interactive child process with:
-
-- `cwd` set to the worktree.
-- stdin, stdout, and stderr inherited from the current terminal.
-
-Ravel waits for the agent to exit, then returns control to the invoking shell.
-It cannot and does not change the parent shell's directory.
-
-In copy-only mode, Ravel prints the full prompt, confirms that it was copied,
-and prints the exact quoted `cd` command for the worktree.
-
-## Agent Prompt and Review Flow
-
-The prompt names:
-
-- Task ID and task file.
-- Task branch and worktree context.
-- Absolute primary checkout path.
-- Configured `baseBranch`.
-
-It instructs the agent to follow this lifecycle.
+The generated prompt names the task ID and repository-relative task file and
+instructs the agent to follow `AGENTS.md` and the task. It contains the only
+v2-specific lifecycle instructions. Ravel generates a workmux variant for
+automatic launch and a manual variant for clipboard fallback.
 
 ### Before approval
 
-1. Implement only the selected task.
-2. Run the verification required by the task and repository instructions.
-3. Update the worktree task status to `review`.
-4. Send the best-effort "ready for review" terminal notification documented in
-   the installed Ravel conventions.
-5. Do not commit, merge, or clean up.
-6. Stop and wait for explicit `LGTM`.
+1. If the selected task is `new`, update its status to `in-progress` before
+   implementation.
+2. Implement only the selected task.
+3. Run the verification required by the task and repository instructions.
+4. Update the task status to `review`.
+5. Send the best-effort ready-for-review notification described below.
+6. Do not commit, rebase, merge, or clean up.
+7. Stop and wait for explicit `LGTM`.
 
-### After explicit `LGTM`
+### After explicit `LGTM` with workmux
 
-1. Update the worktree task status to `done`.
-2. Create exactly one local task commit using:
+1. Update the task status to `done`.
+2. Create exactly one local commit using:
 
    ```txt
    T0001: Example task
    ```
 
-3. Rebase the task branch on the local configured `baseBranch`.
-4. Resolve rebase conflicts in the task worktree and amend the resolution into
-   the single task commit.
-5. Rerun the required build, lint, and test checks in the rebased worktree.
-6. Verify that the primary checkout is clean and currently has `baseBranch`
-   checked out.
-7. Fast-forward the primary checkout to the task branch.
-8. Send the best-effort "merged" terminal notification documented in the
-   installed Ravel conventions.
-9. Report success and give the user the exact safe cleanup commands.
+3. Run `workmux rebase` from the task worktree. Workmux reads the base branch
+   saved when it created the worktree, falling back to its configured main
+   branch, so the prompt does not need to know the branch name.
+4. If the rebase conflicts, resolve the conflicts in the worktree and continue
+   with `git rebase --continue`. Do not create an additional commit.
+5. Rerun all required verification against the rebased result.
+6. Run `workmux merge --rebase --notification`. The explicit strategy avoids
+   a merge commit regardless of the user's workmux default and delegates the
+   target branch, fast-forward merge, notification, and configured resource
+   cleanup behavior to workmux.
+7. If the merge-time rebase finds newer conflicts, resolve and continue the
+   rebase, rerun verification, and retry the same workmux merge command.
 
-The agent must never:
+The separate `workmux rebase` step is intentional. Calling only
+`workmux merge --rebase` could immediately integrate and clean up a
+conflict-free branch before the rebased result has been verified.
 
-- Fetch or push.
-- Stash or discard changes in the primary checkout.
-- Merge into a branch other than the configured `baseBranch`.
-- Use a non-fast-forward merge.
-- Remove the worktree or delete its branch.
+The prompt does not name an agent command, main branch, or worktree path.
+Those are workmux concerns. These instructions are compatible with the
+Ravel conventions, which require the review gate and one local commit. The
+task prompt identifies `workmux rebase` and
+`workmux merge --rebase --notification` as narrow, task-specific exceptions to
+the general convention that agents do not merge branches or delete worktrees.
+They are authorized only after explicit `LGTM`; direct push, merge, and
+worktree deletion commands remain prohibited. This keeps the existing Ravel
+conventions reusable without weakening their default safety rules.
 
-If rebase, verification, or primary-checkout validation fails, the agent stops
-and reports the issue. The intact task branch remains visible in Ravel. A task
-whose branch status is `done` but whose base copy is not is displayed as
-`merging` so a failed integration cannot disappear from the UI.
+### After explicit `LGTM` in manual mode
 
-The installed Ravel conventions and generated `AGENTS.md` guidance must match
-this workflow. They continue to prohibit pushing and worktree deletion, but
-permit the local rebase and fast-forward merge only after explicit `LGTM` and
-when requested by the Ravel task prompt.
+The manual prompt also requires status `done` and exactly one local commit,
+but then stops and reports the completed branch to the user. It prohibits
+rebase, merge, push, worktree removal, and branch deletion because workmux is
+unavailable or its launch failed. The user remains responsible for integration
+and cleanup in this fallback workflow.
 
-## Cleanup
+## Ready-for-review Notification
 
-Ravel never removes completed worktrees or branches.
+The prompt instructs the agent to send a best-effort OSC 9 notification after
+verification succeeds and the task status becomes `review`.
 
-After a successful merge, the agent tells the user to:
-
-1. Exit the agent and close shells, editors, or other processes using the
-   worktree.
-2. Run the following from the primary checkout:
-
-   ```sh
-   git worktree remove .worktrees/T0001
-   git branch -d T0001-example-task
-   ```
-
-The non-force `-d` check prevents deletion of an unmerged branch. Keeping
-cleanup manual avoids invalidating a tmux pane, agent, shell, or editor whose
-current directory is still inside the worktree.
-
-There is no cleanup subcommand or fzf cleanup key in v2.
-
-## Notifications
-
-Ravel has no watcher or background process from which to send notifications.
-Instead, the installed conventions instruct the interactive agent to emit a
-best-effort terminal notification at the two points that require user
-attention:
-
-- When implementation and verification are ready for review.
-- After the task branch has been successfully fast-forwarded into
-  `baseBranch`.
-
-Assignment does not notify. Initialization, the picker header, and the copied
-prompt already teach the user to paste the prompt into the launched agent, and
-repeating that notification for every task would add noise without reporting a
-completed or blocked transition.
-
-For terminals that support OSC 9, the conventions use these output-only shell
-commands, substituting the task ID in each message:
+Outside tmux:
 
 ```sh
-# Ready for review, outside tmux
 printf '\033]9;Ravel: T0001 ready for review\007'
+```
 
-# Ready for review, inside tmux
+Inside tmux:
+
+```sh
 printf '\033Ptmux;\033\033]9;Ravel: T0001 ready for review\007\033\\'
-
-# Merged, outside tmux
-printf '\033]9;Ravel: T0001 merged\007'
-
-# Merged, inside tmux
-printf '\033Ptmux;\033\033]9;Ravel: T0001 merged\007\033\\'
 ```
 
-The agent selects the variant according to whether `$TMUX` is set.
-Notification failure never changes task status or blocks the workflow; the
-agent still reports the transition in its normal response. These are ordinary
-`printf` commands and will not normally need elevated permission, but Ravel
-cannot guarantee another agent's command approval policy or the terminal's OSC
-support.
+The agent chooses the command based on whether `$TMUX` is set. Notification
+failure is non-blocking: the agent still reports that review is ready and
+waits for `LGTM`. Ravel sends no notification merely because the task was
+selected. The tmux form requires `allow-passthrough`; `all` also works when
+the workmux pane is not visible.
 
-tmux must allow escape-sequence passthrough. The README tells tmux users to add
-this line to `~/.tmux.conf` or their configured tmux config file:
+## workmux Integration
 
-```tmux
-set -g allow-passthrough on
+After a non-blocked, non-`ready-to-merge` task is selected, Ravel probes the
+recommended Git, tmux, and workmux availability checks using the same doctor
+modules.
+
+When all three availability checks pass, Ravel generates the workmux prompt
+variant and executes workmux without a shell:
+
+```txt
+workmux add T0001-example-task --open-if-exists --prompt <generated-prompt>
 ```
 
-They can apply it to a running server with `tmux set -g allow-passthrough on`.
-During initialization inside tmux, Ravel checks the effective value with
-`tmux show-options -gqv allow-passthrough`. If it is not `on`, Ravel prints the
-setup instructions and continues; it does not inspect or edit dotfiles.
+`--open-if-exists` makes repeated selection idempotent: workmux creates a new
+task worktree/window when needed or opens the existing one. Prompt injection
+is delegated to workmux, which knows how to invoke the agent configured in its
+global or project configuration. It passes the prompt directly to matching
+agent panes using that agent's supported CLI syntax, so Ravel does not also
+copy the prompt to the clipboard on this successful path.
+
+The tmux passthrough result does not gate launch. A disabled or limited setting
+only warns that the ready-for-review notification may not reach the outer
+terminal; workmux creation and prompt injection still proceed.
+
+For a `ready-to-merge` task, Ravel instead executes the same command without
+`--prompt`. This reopens the registered worktree without starting a duplicate
+implementation prompt.
+
+Ravel does not pass a base branch, main branch, worktree directory, pane
+layout, setup hook, file operation, or agent command. Workmux owns those
+choices. In particular:
+
+- Workmux auto-detects its merge target.
+- Workmux uses its configured `base_branch` for new worktrees, or its own
+  documented default when that setting is absent.
+- Users who want every task to start from the effective main branch can set
+  `base_branch: auto` in workmux configuration.
+- The workmux `agent` setting or named agent configuration determines the
+  command that receives the prompt.
+- Workmux file operations and hooks handle `.env`, dependency directories,
+  installs, and other worktree setup.
+- After explicit `LGTM`, the agent uses `workmux rebase` and
+  `workmux merge --rebase --notification`; workmux determines the saved base
+  and merge target and performs the merge and cleanup lifecycle.
+
+Ravel inherits workmux's standard streams and exit status. If workmux fails,
+Ravel reports its output and does not attempt its own repair or cleanup. For a
+task that needs agent work, Ravel then generates the manual prompt variant and
+enters manual prompt mode so the instructions remain usable.
+
+## Manual Prompt Mode
+
+If Git, tmux, or workmux is unavailable, Ravel does not fail after selection.
+For a task that still needs agent work, it generates the manual prompt variant,
+prints which workflow tools are unavailable, copies the full prompt to the
+clipboard, prints the prompt, and reports whether the copy succeeded.
+
+The user can open an AI agent in any checkout and paste the prompt. Ravel does
+not create a branch, change directory, change task status, or start an agent
+in this mode.
+
+Clipboard writing exists only for this manual/error fallback. Clipboard
+failure is recoverable because the complete prompt is printed.
+
+## Configuration
+
+Ravel v2 has no configuration file and no configuration UI.
+
+Agent command, multiplexer layout, worktree location, base/main branch rules,
+file sharing, and lifecycle hooks belong in workmux configuration. Ravel does
+not read or write `.workmux.yaml` or workmux's global configuration.
+
+A minimal workmux configuration for the intended workflow is:
+
+```yaml
+agent: codex
+base_branch: auto
+panes:
+  - command: <agent>
+    focus: true
+```
+
+The user chooses the agent. `base_branch: auto` makes new worktrees start from
+workmux's effective main branch, and the agent pane lets workmux inject Ravel's
+prompt. Ravel does not validate these preferences. Workmux injects prompts
+only into matching agent panes, so direct prompt delivery assumes the user has
+configured one as shown.
+
+## Migrating from v1
+
+The README contains the complete migration procedure:
+
+```txt
+Remove the .ravel/ directory.
+```
+
+Nothing else is required. The committed `ravel/` task and documentation
+folders remain valid, and the Ravel section already installed in `AGENTS.md`
+is reused. V2 neither reads nor recreates `.ravel/`.
 
 ## Removed v1 Surface
 
-The v2 implementation removes:
+The v2 implementation removes or leaves removed:
 
 - Ink and React TUI code.
 - Slash commands and interactive assign mode.
-- Public `init`, `assign`, `prompt`, `integrate`, and `cleanup` subcommands.
+- `assign`, `prompt`, `integrate`, and `cleanup` subcommands.
 - Commander-based command routing.
 - Chokidar file watching and event models.
-- Session JSON and logs.
-- Automatic rebase, test, merge, stash, and cleanup code.
-- Ravel-owned integration notification code and configuration.
-- Clipboard-choice state and all obsolete config fields.
+- Ravel configuration, session JSON, and logs.
+- Git worktree creation, integration, and cleanup code.
+- Ravel-owned tmux launching and session tracking.
+- Agent selection and command execution.
+- Ravel-owned notification processes and configuration.
+- Clipboard preference state.
 
 The implementation retains and simplifies:
 
 - Task filename and frontmatter parsing.
-- Task status validation.
-- Dependency validation and blocked-state computation.
+- Task status and dependency validation.
+- Read-only registered-worktree discovery through Git's porcelain format.
+- `fzf` record formatting, preview, and selection.
 - Prompt generation and clipboard writing.
-- Git command execution needed for discovery and worktree creation.
+- Template installation and surgical `AGENTS.md` updates.
 
-Expected runtime dependencies are `clipboardy`, `gray-matter`, and `zod`.
-`fzf`, Git, tmux, and the agent remain external executables.
+Expected runtime dependencies remain `clipboardy`, `gray-matter`, and `zod`.
+`fzf`, Git, tmux, workmux, and the agent are external executables.
 
 ## Implementation Plan
 
-1. Freeze v1 by creating and pushing the `v1` branch at `v1.0.3`.
-2. Replace the command router and v1 configuration with the bare-entrypoint and
-   first-run initialization flow.
-3. Keep the task parser and implement base-versus-worktree status resolution.
-4. Add the `fzf` adapter and preview/selection record format.
-5. Add primary-root discovery, worktree creation/recovery, and launch
-   validation.
-6. Add prompt generation, best-effort agent notification instructions, and
-   tmux and direct-terminal launchers.
-7. Update the conventions template, generated `AGENTS.md` guidance, README,
-   package metadata, and dependencies. The README must include the v1 migration
-   procedure printed by the executable.
-8. Delete obsolete v1 implementation and tests, then verify the complete v2
-   workflow.
+1. Keep the completed v1 runtime removal as the v2 baseline.
+2. Implement the small public command router and idempotent `ravel init`.
+3. Add the doctor check model, individual check modules, and mandatory-only
+   preflight.
+4. Add project discovery and the `fzf` task picker.
+5. Update prompt generation for the workmux-owned lifecycle.
+6. Delegate launch/resume to workmux and add manual prompt fallback.
+7. Rewrite the README and update package metadata for `2.0.0`.
+8. Verify the public workflows and audit the package for obsolete v1 code.
 
-Each step should remain surgical: reuse the current parser and clipboard code
-where they fit, and avoid abstraction beyond the single v2 workflow.
+Each step should remain surgical. Ravel must not grow adapters for work that
+workmux already exposes.
 
 ## Test Plan
 
-Use temporary Git repositories and fake executables so automated tests do not
-require an interactive fzf, tmux server, clipboard, or installed agent.
+Automated tests use fake executables and temporary directories. They do not
+require interactive fzf, Git repositories, tmux, workmux, a real clipboard,
+or an installed coding agent.
 
-### Initialization and discovery
+### Initialization
 
-- Resolve the same primary root from its root, a subdirectory, and a linked
-  worktree.
-- Reject invocation outside Git.
-- Initialize only after confirmation and preserve unrelated existing files.
-- Inside tmux, report a disabled `allow-passthrough` option with setup guidance
-  without editing tmux configuration; do not require the option outside tmux.
-- Detect the base branch and each supported agent choice, including `null` and
-  a custom command.
-- Write `configVersion: 2` and accept supported v2 configuration.
-- Detect a v1-shaped config, print the documented migration procedure, and
-  exit without mutation.
-- Reject an unknown `configVersion` without treating it as v1 or partially
-  mutating the project.
-- Reject a missing prerequisite without partial mutation.
+- Create only `ravel/docs/`, `ravel/tasks/`, the conventions file, and the
+  Ravel section in `AGENTS.md`.
+- Preserve an existing conventions file and unrelated `AGENTS.md` content.
+- Remain idempotent and never create `.ravel/` or edit `.gitignore`.
 
-### Task and picker state
+### Doctor
 
+- Run every check command and preserve its output.
+- Report mandatory and recommended failures distinctly.
+- Return status 1 only for mandatory failure.
+- Check tmux passthrough only inside tmux, distinguish `all`, limited `on`, and
+  disabled values, and print configuration guidance without mutation.
+- Prove bare `ravel` runs only mandatory checks before the picker.
+
+### Tasks and picker
+
+- Discover the project from its root and nested directories.
 - Parse every valid status and reject malformed tasks or missing dependencies.
-- Reject `in-progress` or `review` as a primary-checkout lifecycle state while
-  accepting them in task branches/worktrees.
-- Exclude tasks committed as `done` on `baseBranch`.
-- Display worktree `in-progress` and `review` states over a base `new` task.
-- Display branch `done` over base `new` as the derived `merging` state.
-- Keep dependent tasks blocked until the dependency is committed as `done` on
-  `baseBranch`.
-- Preserve state-group ordering during filtering and preview the correct file.
-- Make Escape mutation-free and blocked selection mutation-free.
+- Parse `git worktree list --porcelain -z` and match exact branch refs to
+  absolute worktree paths without assuming workmux's directory layout.
+- Use primary statuses for dependencies, overlay live worktree statuses, and
+  derive `ready-to-merge` without persisting it.
+- Exclude primary `done`, preserve group ordering, and preview the resolved
+  primary or worktree file.
+- Make cancellation and blocked selection mutation-free.
 
-### Git lifecycle
+### Prompt and workmux
 
-- Reject launch of an untracked or base-divergent task file.
-- Create the expected branch/worktree from `baseBranch` and update only the
-  worktree status.
-- Reuse a registered worktree and reattach an existing unregistered branch.
-- Reject an unregistered canonical directory or ambiguous Git state without
-  force cleanup.
-- Clean up only state created by a failed new-task operation.
-
-### Launching and prompt
-
-- Inside tmux, create and tag the correctly named window at the worktree path.
-- Resume a tagged window without rewriting the clipboard.
-- Relaunch a missing window and recopy the prompt.
-- Outside tmux, inherit terminal streams and use the worktree as `cwd`.
-- In copy-only mode, print the prompt, confirmation, and exact `cd` command.
-- Verify that the prompt contains the review gate, conservative integration
-  preconditions, a concise instruction to follow the installed notification
-  convention, failure behavior, and manual cleanup instructions.
-- Verify that the installed conventions contain both lifecycle triggers and
-  the exact tmux and non-tmux notification commands.
+- Include the task identity, initial `in-progress` transition, verification,
+  `review` gate, best-effort notification, explicit `LGTM` gate, exact
+  one-commit format, separate workmux rebase and verification, and workmux
+  merge handoff in the prompt.
+- Verify both OSC 9 notification commands and their non-blocking trigger.
+- Exclude agent and branch names and prohibit direct push, merge, and cleanup
+  commands while allowing only the named workmux lifecycle after approval.
+- Invoke `workmux add <branch> --open-if-exists --prompt <prompt>` as argument
+  arrays without shell interpolation when the Git, tmux, and workmux
+  availability checks pass, without also copying the prompt. Passthrough
+  warnings do not block launch.
+- Reopen `ready-to-merge` worktrees without a new implementation prompt.
+- Generate, print, and copy the manual prompt variant only when an availability
+  check or workmux launch fails.
+- Preserve workmux output and exit status without attempting cleanup.
 
 ### Acceptance
 
-- `ravel` provides the complete documented v2 workflow with no public
-  subcommands.
-- README migration instructions match the v1-detection output and preserve
-  existing `.worktrees/`.
-- README documents OSC 9 terminal support, both tmux and non-tmux notification
-  paths, and the `allow-passthrough` setup.
-- Parallel task agents operate in separate worktrees.
-- No Ravel action automatically merges, stashes, pushes, deletes user state,
-  or removes a completed worktree.
-- The package builds successfully.
-- `npm run lint` passes.
-- `npm test` passes in full.
+- `ravel`, `ravel init`, and `ravel doctor` are the complete documented v2
+  workflow.
+- README migration guidance says only to remove `.ravel/`.
+- README and doctor document tmux passthrough for ready-for-review
+  notifications.
+- The conventions template and generated `AGENTS.md` section remain reusable;
+  the workmux task prompt supplies the narrow post-approval lifecycle
+  exceptions.
+- Ravel reads Git's registered worktree metadata but contains no direct
+  worktree lifecycle implementation; workmux owns those operations.
+- A clean build succeeds, `npm run lint` passes, and `npm test` passes in full.
