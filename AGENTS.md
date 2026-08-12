@@ -65,6 +65,9 @@ Write code and comments in clear, plain English.
 - Avoid jargon and look-it-up words. If a term needs a glossary, it's the wrong term.
 - Match how much comment a thing deserves. Two lines of code rarely need six lines of comment. If the comment is longer than the code and mostly apologizing for it, the code or the name is the problem.
 
+Before creating or modifying TypeScript code, read
+`ravel/docs/typescript-conventions.md` completely and follow it.
+
 ## Ravel Conventions
 
 Before creating or modifying any tasks or design docs, read `ravel/docs/ravel-conventions.md` and follow those conventions strictly.
