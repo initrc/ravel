@@ -58,6 +58,52 @@ steps into a clever expression just because the language allows it. Prefer
 descriptive names and ordinary `if` or `for` statements. If a line needs a
 comment to explain how it works, rewrite the line more clearly.
 
+Start with the smallest model that matches the domain. Do not introduce a
+helper, interface, result object, wrapper class, or exported function type for
+a single operation unless it removes real duplication or establishes a needed
+boundary. If two layers perform consecutive parts of one operation and neither
+has an independent responsibility, combine them.
+
+### Keep behavior with its state
+
+Use a class when behavior reads or changes an object's state. Put that behavior
+on the object instead of exporting free functions that accept the object. For
+example, prefer `doctor.check()` to `runDoctor(doctor)` when checking is the
+doctor's primary responsibility.
+
+Free functions are appropriate for genuinely stateless transformations or
+shared operations with no natural owner. Do not use them merely to avoid adding
+a method to an existing domain object.
+
+Keep intermediate implementation details private. Convert library-specific
+values into domain state at the boundary where they are received. Do not expose
+an exit code, library response, or temporary result type when callers only
+need the resulting state and output.
+
+Return short-lived values directly. Store a returned value on the object only
+when another operation needs to read it later.
+
+### Use one vocabulary
+
+Use the same terms in enum members, enum values, output, and surrounding code
+when they represent the same concept. Do not add a label map only to rename
+states such as `Passed` to `PASS`; either display the state directly or choose
+the intended display value in the enum.
+
+Name the single canonical instance after the domain object, such as `doctor`.
+Use prefixes such as `default`, `primary`, or `fallback` only when those
+distinctions actually exist.
+
+Choose method names for readable call sites. `doctor.check()` communicates
+ownership and intent more clearly than a generic name such as `doctor.run()`.
+
+### Organize feature folders by role
+
+Keep the feature's model, orchestration, and top-level tests at the feature
+root. When a feature contains several concrete implementations of the same
+role, put them in a clearly named child folder such as `checks/`, `providers/`,
+or `strategies/` instead of mixing them with the framework files.
+
 ### Put components in separate files
 
 Page and view components compose features; they should not contain the details

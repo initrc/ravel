@@ -10,7 +10,23 @@ import {
   type Mock,
   vi,
 } from "vitest";
+import { CheckItem, CheckLevel, CheckState } from "./doctor/check.js";
+import { Doctor, DoctorDisplay } from "./doctor/doctor.js";
 import { runCli } from "./ravel.js";
+
+function fakeCheck(
+  name: string,
+  level: CheckLevel,
+  state: CheckState,
+  output: string,
+): CheckItem {
+  const check = new CheckItem(name, level, name, ["--version"]);
+  vi.spyOn(check, "run").mockImplementation(() => {
+    check.state = state;
+    return output;
+  });
+  return check;
+}
 
 describe("runCli", () => {
   let tmpDir: string;
@@ -73,15 +89,60 @@ describe("runCli", () => {
   });
 
   it("leaves bare ravel as the T0043 handoff", () => {
-    expect(runCli([], projectDir, templatesDir)).toBe(1);
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
+    ]);
+    const checkDoctor = vi.spyOn(doctor, "check");
+
+    expect(runCli([], projectDir, templatesDir, doctor)).toBe(1);
+    expect(checkDoctor).toHaveBeenCalledWith(
+      CheckLevel.Mandatory,
+      DoctorDisplay.Failures,
+    );
     expect(error).toHaveBeenCalledWith(
       "The Ravel task picker workflow arrives in T0043.",
     );
   });
 
-  it("leaves doctor as the T0042 handoff", () => {
-    expect(runCli(["doctor"], projectDir, templatesDir)).toBe(1);
-    expect(error).toHaveBeenCalledWith("The Ravel doctor workflow arrives in T0042.");
+  it("stops bare ravel when its mandatory preflight fails", () => {
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Failed, "fzf not found"),
+    ]);
+
+    expect(runCli([], projectDir, templatesDir, doctor)).toBe(1);
+    expect(log).toHaveBeenCalledWith(
+      "FAILED [mandatory] fzf: fzf not found",
+    );
+    expect(error).not.toHaveBeenCalledWith(
+      "The Ravel task picker workflow arrives in T0043.",
+    );
+  });
+
+  it("runs all doctor checks and succeeds with recommended failures", () => {
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
+      fakeCheck(
+        "workmux",
+        CheckLevel.Recommended,
+        CheckState.Failed,
+        "workmux not found",
+      ),
+    ]);
+    const checkDoctor = vi.spyOn(doctor, "check");
+
+    expect(runCli(["doctor"], projectDir, templatesDir, doctor)).toBe(0);
+    expect(checkDoctor).toHaveBeenCalledWith(
+      undefined,
+      DoctorDisplay.All,
+    );
+  });
+
+  it("exits one from doctor when a mandatory check fails", () => {
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Failed, "fzf not found"),
+    ]);
+
+    expect(runCli(["doctor"], projectDir, templatesDir, doctor)).toBe(1);
   });
 
   it.each([["assign"], ["--unknown"], ["init", "extra"], ["--help", "extra"]])(

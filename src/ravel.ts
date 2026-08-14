@@ -4,6 +4,12 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { initCommand } from "./commands/init.js";
+import { CheckLevel } from "./doctor/check.js";
+import {
+  doctor as ravelDoctor,
+  Doctor,
+  DoctorDisplay,
+} from "./doctor/doctor.js";
 
 const thisFile = fileURLToPath(import.meta.url);
 const packageJson = JSON.parse(
@@ -26,8 +32,13 @@ export function runCli(
   args: string[],
   cwd: string,
   templatesDir: string,
+  doctor: Doctor = ravelDoctor,
 ): number {
   if (args.length === 0) {
+    const results = doctor.check(CheckLevel.Mandatory, DoctorDisplay.Failures);
+    if (results.some((result) => result.isMandatoryFailure())) {
+      return 1;
+    }
     console.error("The Ravel task picker workflow arrives in T0043.");
     return 1;
   }
@@ -47,8 +58,11 @@ export function runCli(
         return 1;
       }
     case "doctor":
-      console.error("The Ravel doctor workflow arrives in T0042.");
-      return 1;
+      return doctor
+        .check(undefined, DoctorDisplay.All)
+        .some((result) => result.isMandatoryFailure())
+        ? 1
+        : 0;
     case "--help":
       console.log(help);
       return 0;

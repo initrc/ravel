@@ -1,7 +1,7 @@
 ---
 id: T0042
 title: Add doctor checks
-status: new
+status: done
 dependencies:
   - T0041
 ---
