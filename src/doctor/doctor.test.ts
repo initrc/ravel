@@ -129,6 +129,31 @@ describe("doctor checks", () => {
       "FAILED [recommended] Git: git failure",
     );
   });
+
+  it("can print failures and warnings as issues", () => {
+    const warning = fakeCheck(
+      "tmux passthrough",
+      CheckLevel.Recommended,
+      CheckState.Warning,
+      "limited guidance",
+    );
+    const passed = fakeCheck(
+      "workmux",
+      CheckLevel.Recommended,
+      CheckState.Passed,
+      "workmux version",
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    new Doctor([warning.check, passed.check]).check(
+      CheckLevel.Recommended,
+      DoctorDisplay.Issues,
+    );
+
+    expect(log).toHaveBeenCalledExactlyOnceWith(
+      "WARNING [recommended] tmux passthrough: limited guidance",
+    );
+  });
 });
 
 describe("command execution", () => {

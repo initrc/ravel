@@ -1,7 +1,7 @@
 ---
 id: T0045
 title: Delegate launching to workmux
-status: new
+status: done
 dependencies:
   - T0044
 ---

@@ -13,6 +13,7 @@ import {
 import { CheckItem, CheckLevel, CheckState } from "./doctor/check.js";
 import { Doctor, DoctorDisplay } from "./doctor/doctor.js";
 import { type CommandResult, type CommandRunner } from "./commands/process.js";
+import { ResolvedTask, TaskPickerState } from "./models/resolved-task.js";
 import { TaskPicker } from "./task-picker.js";
 import { runCli } from "./ravel.js";
 
@@ -97,8 +98,8 @@ describe("runCli", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("prints help for --help", () => {
-    expect(runCli(["--help"], projectDir, templatesDir)).toBe(0);
+  it("prints help for --help", async () => {
+    await expect(runCli(["--help"], projectDir, templatesDir)).resolves.toBe(0);
 
     const output = String(log.mock.calls[0]?.[0]);
     expect(output).toContain("Usage: ravel [init|doctor|--help|--version]");
@@ -108,24 +109,26 @@ describe("runCli", () => {
     expect(output).not.toContain("integrate");
   });
 
-  it("prints the package version for --version", () => {
+  it("prints the package version for --version", async () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(import.meta.dirname, "..", "package.json"), "utf-8"),
     ) as { version: string };
 
-    expect(runCli(["--version"], projectDir, templatesDir)).toBe(0);
+    await expect(runCli(["--version"], projectDir, templatesDir)).resolves.toBe(
+      0,
+    );
     expect(log).toHaveBeenCalledWith(packageJson.version);
   });
 
-  it("routes init with the current directory and injected templates", () => {
-    expect(runCli(["init"], projectDir, templatesDir)).toBe(0);
+  it("routes init with the current directory and injected templates", async () => {
+    await expect(runCli(["init"], projectDir, templatesDir)).resolves.toBe(0);
 
     expect(
       fs.existsSync(path.join(projectDir, "ravel", "docs", "ravel-conventions.md")),
     ).toBe(true);
   });
 
-  it("runs the task picker after the mandatory preflight", () => {
+  it("runs the task picker after the mandatory preflight", async () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
     ]);
@@ -138,7 +141,9 @@ describe("runCli", () => {
     );
     const pick = vi.spyOn(picker, "pick").mockReturnValue(undefined);
 
-    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(0);
+    await expect(
+      runCli([], projectDir, templatesDir, doctor, picker),
+    ).resolves.toBe(0);
     expect(checkDoctor).toHaveBeenCalledWith(
       CheckLevel.Mandatory,
       DoctorDisplay.Failures,
@@ -146,18 +151,56 @@ describe("runCli", () => {
     expect(pick).toHaveBeenCalledWith(projectDir);
   });
 
-  it("stops bare ravel when its mandatory preflight fails", () => {
+  it("returns the selected task launch status", async () => {
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
+    ]);
+    const picker = new TaskPicker(
+      new PickerCommandRunner(
+        { status: 1, stdout: "", stderr: "" },
+        { status: 130, stdout: "", stderr: "" },
+      ),
+    );
+    const task = {
+      id: "T0045",
+      title: "Delegate launching to workmux",
+      status: "new" as const,
+      dependencies: ["T0044"],
+      filename: "T0045-delegate-launching-to-workmux.md",
+      filePath: path.join(
+        projectDir,
+        "ravel/tasks/T0045-delegate-launching-to-workmux.md",
+      ),
+    };
+    const selectedTask = new ResolvedTask(
+      task,
+      "T0045-delegate-launching-to-workmux",
+      TaskPickerState.New,
+      task.filePath,
+      [],
+    );
+    vi.spyOn(picker, "pick").mockReturnValue(selectedTask);
+    const launch = vi.fn().mockResolvedValue(23);
+
+    await expect(
+      runCli([], projectDir, templatesDir, doctor, picker, { launch }),
+    ).resolves.toBe(23);
+
+    expect(launch).toHaveBeenCalledWith(selectedTask, projectDir);
+  });
+
+  it("stops bare ravel when its mandatory preflight fails", async () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Failed, "fzf not found"),
     ]);
 
-    expect(runCli([], projectDir, templatesDir, doctor)).toBe(1);
+    await expect(runCli([], projectDir, templatesDir, doctor)).resolves.toBe(1);
     expect(log).toHaveBeenCalledWith(
       "FAILED [mandatory] fzf: fzf not found",
     );
   });
 
-  it("fails without mutation when a blocked task is selected", () => {
+  it("fails without mutation when a blocked task is selected", async () => {
     fs.mkdirSync(path.join(projectDir, "ravel", "tasks"), { recursive: true });
     writeTask(projectDir, "T0001-first.md", "new");
     const blockedPath = writeTask(
@@ -177,14 +220,16 @@ describe("runCli", () => {
       ),
     );
 
-    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(1);
+    await expect(
+      runCli([], projectDir, templatesDir, doctor, picker),
+    ).resolves.toBe(1);
     expect(error).toHaveBeenCalledWith(
       "T0002 is blocked by incomplete dependencies: T0001 (first)",
     );
     expect(fs.readFileSync(blockedPath, "utf-8")).toBe(before);
   });
 
-  it("tells the user to initialize when no project is discoverable", () => {
+  it("tells the user to initialize when no project is discoverable", async () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
     ]);
@@ -195,13 +240,15 @@ describe("runCli", () => {
       ),
     );
 
-    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(1);
+    await expect(
+      runCli([], projectDir, templatesDir, doctor, picker),
+    ).resolves.toBe(1);
     expect(error).toHaveBeenCalledWith(
       "Ravel is not initialized here. Run `ravel init`.",
     );
   });
 
-  it("runs all doctor checks and succeeds with recommended failures", () => {
+  it("runs all doctor checks and succeeds with recommended failures", async () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
       fakeCheck(
@@ -213,25 +260,29 @@ describe("runCli", () => {
     ]);
     const checkDoctor = vi.spyOn(doctor, "check");
 
-    expect(runCli(["doctor"], projectDir, templatesDir, doctor)).toBe(0);
+    await expect(
+      runCli(["doctor"], projectDir, templatesDir, doctor),
+    ).resolves.toBe(0);
     expect(checkDoctor).toHaveBeenCalledWith(
       undefined,
       DoctorDisplay.All,
     );
   });
 
-  it("exits one from doctor when a mandatory check fails", () => {
+  it("exits one from doctor when a mandatory check fails", async () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Failed, "fzf not found"),
     ]);
 
-    expect(runCli(["doctor"], projectDir, templatesDir, doctor)).toBe(1);
+    await expect(
+      runCli(["doctor"], projectDir, templatesDir, doctor),
+    ).resolves.toBe(1);
   });
 
   it.each([["assign"], ["--unknown"], ["init", "extra"], ["--help", "extra"]])(
     "rejects unsupported arguments: %s",
-    (...args) => {
-      expect(runCli(args, projectDir, templatesDir)).toBe(1);
+    async (...args) => {
+      await expect(runCli(args, projectDir, templatesDir)).resolves.toBe(1);
       expect(error).toHaveBeenCalledWith(
         "Usage: ravel [init|doctor|--help|--version]",
       );

@@ -11,6 +11,7 @@ import {
   DoctorDisplay,
 } from "./doctor/doctor.js";
 import { TaskPickerState } from "./models/resolved-task.js";
+import { TaskLauncher, type TaskLaunch } from "./task-launcher.js";
 import { taskPicker as ravelTaskPicker, TaskPicker } from "./task-picker.js";
 
 const thisFile = fileURLToPath(import.meta.url);
@@ -30,13 +31,14 @@ Options:
   --help     Show help
   --version  Show version`;
 
-export function runCli(
+export async function runCli(
   args: string[],
   cwd: string,
   templatesDir: string,
   doctor: Doctor = ravelDoctor,
   taskPicker: TaskPicker = ravelTaskPicker,
-): number {
+  taskLauncher: TaskLaunch = new TaskLauncher(doctor),
+): Promise<number> {
   if (args.length === 0) {
     const results = doctor.check(CheckLevel.Mandatory, DoctorDisplay.Failures);
     if (results.some((result) => result.isMandatoryFailure())) {
@@ -53,7 +55,7 @@ export function runCli(
         );
         return 1;
       }
-      return 0;
+      return selectedTask ? await taskLauncher.launch(selectedTask, cwd) : 0;
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       return 1;
@@ -93,5 +95,9 @@ export function runCli(
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === thisFile) {
-  process.exitCode = runCli(process.argv.slice(2), process.cwd(), templatesDir);
+  process.exitCode = await runCli(
+    process.argv.slice(2),
+    process.cwd(),
+    templatesDir,
+  );
 }

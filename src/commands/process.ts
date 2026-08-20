@@ -6,6 +6,7 @@ export interface CommandOptions {
   cwd: string;
   input?: string;
   inheritStderr?: boolean;
+  inheritStdio?: boolean;
 }
 
 export interface CommandResult {
@@ -36,9 +37,11 @@ export class SystemCommandRunner implements CommandRunner {
       input: options.input,
       maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
       shell: false,
-      stdio: options.inheritStderr
-        ? ["pipe", "pipe", "inherit"]
-        : ["pipe", "pipe", "pipe"],
+      stdio: options.inheritStdio
+        ? "inherit"
+        : options.inheritStderr
+          ? ["pipe", "pipe", "inherit"]
+          : ["pipe", "pipe", "pipe"],
     });
 
     return {
