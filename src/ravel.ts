@@ -94,7 +94,10 @@ export async function runCli(
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === thisFile) {
+if (
+  process.argv[1] &&
+  fs.realpathSync(process.argv[1]) === fs.realpathSync(thisFile)
+) {
   process.exitCode = await runCli(
     process.argv.slice(2),
     process.cwd(),

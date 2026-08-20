@@ -64,7 +64,7 @@ describe("published package", () => {
     }
   });
 
-  it("contains only the intended v2 runtime at version 2.0.0", () => {
+  it("contains only the intended v2 runtime at version 2.0.1", () => {
     npmCache = fs.mkdtempSync(path.join(os.tmpdir(), "ravel-pack-cache-"));
     const pack = spawnSync(
       "npm",
@@ -81,7 +81,7 @@ describe("published package", () => {
 
     expect(pack.status, pack.stderr).toBe(0);
     const [result] = JSON.parse(pack.stdout) as PackResult[];
-    expect(result).toMatchObject({ name: "@initrc/ravel", version: "2.0.0" });
+    expect(result).toMatchObject({ name: "@initrc/ravel", version: "2.0.1" });
     expect(result.files.map((file) => file.path).sort()).toEqual(PUBLISHED_FILES);
   });
 

@@ -6,6 +6,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const PROJECT_ROOT = path.join(import.meta.dirname, "..");
 const RAVEL_EXECUTABLE = path.join(PROJECT_ROOT, "bin", "ravel.js");
+const PACKAGE_VERSION = (
+  JSON.parse(
+    fs.readFileSync(path.join(PROJECT_ROOT, "package.json"), "utf8"),
+  ) as { version: string }
+).version;
 
 interface CliResult {
   status: number | null;
@@ -94,6 +99,24 @@ describe("the built ravel executable", () => {
 
   afterEach(() => {
     fs.rmSync(tempDirectory, { recursive: true, force: true });
+  });
+
+  it("runs through a package-manager binary symlink", () => {
+    const linkedExecutable = path.join(tempDirectory, "ravel");
+    fs.symlinkSync(RAVEL_EXECUTABLE, linkedExecutable);
+
+    const result = runRavel(
+      ["--version"],
+      tempDirectory,
+      environment,
+      linkedExecutable,
+    );
+
+    expect(result).toEqual({
+      status: 0,
+      stdout: `${PACKAGE_VERSION}\n`,
+      stderr: "",
+    });
   });
 
   it("initializes the complete v2 project surface", () => {
@@ -368,8 +391,9 @@ function runRavel(
   args: readonly string[],
   cwd: string,
   environment: NodeJS.ProcessEnv,
+  executable = RAVEL_EXECUTABLE,
 ): CliResult {
-  const result = spawnSync(process.execPath, [RAVEL_EXECUTABLE, ...args], {
+  const result = spawnSync(process.execPath, [executable, ...args], {
     cwd,
     env: environment,
     encoding: "utf8",
