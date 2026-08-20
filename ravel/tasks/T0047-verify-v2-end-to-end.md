@@ -13,7 +13,7 @@ dependencies:
 
 # Acceptance
 
-- Temporary-directory tests cover primary and linked project discovery, initialization, every doctor level and exit path, tmux passthrough values, Git porcelain worktree mapping, live task states, fzf ordering and cancellation, blocked and `ready-to-merge` tasks, workmux and manual prompt variants, prompt notifications and post-approval integration, workmux arguments and failures, and manual fallback.
+- Temporary-directory tests cover primary and linked project discovery, initialization, every doctor level and exit path, tmux passthrough values, Git porcelain worktree mapping, live task states, fzf ordering and cancellation, blocked and `merge-ready` tasks, workmux and manual prompt variants, prompt notifications and post-approval integration, workmux arguments and failures, and manual fallback.
 - Test doubles ensure the suite does not require interactive fzf, Git repositories, a tmux server, workmux, a real clipboard, or an installed coding agent.
 - `ravel`, `ravel init`, and `ravel doctor` are the complete documented public workflow; removed v1 subcommands fail.
 - Ravel uses Git only for read-only registered-worktree discovery; creation, opening, merging, repair, removal, and tmux behavior occur only through the workmux delegation boundary.

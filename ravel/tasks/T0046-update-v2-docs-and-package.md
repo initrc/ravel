@@ -13,7 +13,7 @@ dependencies:
 
 # Acceptance
 
-- README documents supported macOS and Linux environments, `ravel init`, `ravel doctor`, mandatory fzf, recommended Git/tmux/workmux and passthrough, bare `ravel`, live worktree status discovery, `ready-to-merge`, the fzf picker, direct workmux prompt injection, the manual prompt variant and clipboard-only fallback, the review gate, agent-owned `workmux rebase`, and the verified `workmux merge --rebase --notification` handoff without presenting removed v1 commands as available.
+- README documents supported macOS and Linux environments, `ravel init`, `ravel doctor`, mandatory fzf, recommended Git/tmux/workmux and passthrough, bare `ravel`, live worktree status discovery, `review-ready`, `merge-ready`, the fzf picker, direct workmux prompt injection, the manual prompt variant and clipboard-only fallback, the review gate, agent-owned `workmux rebase`, and the verified `workmux merge --rebase --notification` handoff without presenting removed v1 commands as available.
 - README links to workmux, shows the minimal `agent`, `base_branch: auto`, and `<agent>` pane configuration, and explains that workmux owns agent commands, branch behavior, worktree paths, shared files, windows, merge, and cleanup.
 - README's "Migrating from v1" section has one instruction: remove `.ravel/`. It explains that committed `ravel/` files and the existing Ravel `AGENTS.md` section remain valid.
 - README documents OSC 9 ready-for-review notifications and why tmux users should set `allow-passthrough all`, including persistent and live-server commands.

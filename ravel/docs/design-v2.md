@@ -219,11 +219,11 @@ The resolved picker state is:
 | --- | --- | --- |
 | `new` | none | `new` or `blocked` |
 | `new` | `in-progress` | `in-progress` |
-| `new` | `review` | `review` |
-| `new` | `done` | `ready-to-merge` |
+| `new` | `review` | `review-ready` |
+| `new` | `done` | `merge-ready` |
 | `done` | any or none | hidden |
 
-`ready-to-merge` is derived and is never persisted. It means the approved task
+`merge-ready` is derived and is never persisted. It means the approved task
 commit exists but has not yet been integrated into the primary task
 collection. It also keeps interrupted rebase, verification, or merge work
 visible. A missing task file in a matching registered worktree is an invalid
@@ -236,20 +236,20 @@ After the mandatory preflight and task-state resolution, bare `ravel` starts
 one ordinary `fzf` process populated with every task not merged as `done` in
 the primary task collection.
 
-Each row contains searchable status, task ID, and title:
+Each row contains a searchable state, task ID, and title:
 
 ```txt
-ready-to-merge    T0006     Add doctor checks
-review            T0007     Add task picker
-in-progress       T0008     Add doctor checks
-new               T0009     Rewrite README
-blocked           T0010     Publish v2
+merge-ready   T0006  Add doctor checks
+review-ready  T0007  Add task picker
+in-progress   T0008  Add doctor checks
+new           T0009  Rewrite README
+blocked       T0010  Publish v2
 ```
 
 Rows are grouped in this order and passed with `--no-sort`:
 
-1. `ready-to-merge`
-2. `review`
+1. `merge-ready`
+2. `review-ready`
 3. `in-progress`
 4. `new`
 5. `blocked`
@@ -266,7 +266,7 @@ Selecting a blocked task does not copy a prompt or invoke workmux. Ravel
 names every incomplete dependency and exits unsuccessfully. If there are no
 open tasks, Ravel reports that fact instead of starting an empty picker.
 
-Selecting a `ready-to-merge` task does not generate or copy a new implementation
+Selecting a `merge-ready` task does not generate or copy a new implementation
 prompt. With workmux available, Ravel reopens its existing worktree window
 without a prompt so the user can inspect or resume the interrupted integration.
 Without workmux, Ravel prints the task branch and registered path.
@@ -361,7 +361,7 @@ the workmux pane is not visible.
 
 ## workmux Integration
 
-After a non-blocked, non-`ready-to-merge` task is selected, Ravel probes the
+After a non-blocked, non-`merge-ready` task is selected, Ravel probes the
 recommended Git, tmux, and workmux availability checks using the same doctor
 modules.
 
@@ -383,7 +383,7 @@ The tmux passthrough result does not gate launch. A disabled or limited setting
 only warns that the ready-for-review notification may not reach the outer
 terminal; workmux creation and prompt injection still proceed.
 
-For a `ready-to-merge` task, Ravel instead executes the same command without
+For a `merge-ready` task, Ravel instead executes the same command without
 `--prompt`. This reopens the registered worktree without starting a duplicate
 implementation prompt.
 
@@ -531,7 +531,7 @@ or an installed coding agent.
 - Parse `git worktree list --porcelain -z` and match exact branch refs to
   absolute worktree paths without assuming workmux's directory layout.
 - Use primary statuses for dependencies, overlay live worktree statuses, and
-  derive `ready-to-merge` without persisting it.
+  derive `merge-ready` without persisting it.
 - Exclude primary `done`, preserve group ordering, and preview the resolved
   primary or worktree file.
 - Make cancellation and blocked selection mutation-free.
@@ -549,7 +549,7 @@ or an installed coding agent.
   arrays without shell interpolation when the Git, tmux, and workmux
   availability checks pass, without also copying the prompt. Passthrough
   warnings do not block launch.
-- Reopen `ready-to-merge` worktrees without a new implementation prompt.
+- Reopen `merge-ready` worktrees without a new implementation prompt.
 - Generate, print, and copy the manual prompt variant only when an availability
   check or workmux launch fails.
 - Preserve workmux output and exit status without attempting cleanup.

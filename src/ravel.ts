@@ -10,6 +10,8 @@ import {
   Doctor,
   DoctorDisplay,
 } from "./doctor/doctor.js";
+import { TaskPickerState } from "./models/resolved-task.js";
+import { taskPicker as ravelTaskPicker, TaskPicker } from "./task-picker.js";
 
 const thisFile = fileURLToPath(import.meta.url);
 const packageJson = JSON.parse(
@@ -33,14 +35,29 @@ export function runCli(
   cwd: string,
   templatesDir: string,
   doctor: Doctor = ravelDoctor,
+  taskPicker: TaskPicker = ravelTaskPicker,
 ): number {
   if (args.length === 0) {
     const results = doctor.check(CheckLevel.Mandatory, DoctorDisplay.Failures);
     if (results.some((result) => result.isMandatoryFailure())) {
       return 1;
     }
-    console.error("The Ravel task picker workflow arrives in T0043.");
-    return 1;
+    try {
+      const selectedTask = taskPicker.pick(cwd);
+      if (selectedTask?.state === TaskPickerState.Blocked) {
+        const dependencies = selectedTask.incompleteDependencies
+          .map((dependency) => `${dependency.id} (${dependency.title})`)
+          .join(", ");
+        console.error(
+          `${selectedTask.task.id} is blocked by incomplete dependencies: ${dependencies}`,
+        );
+        return 1;
+      }
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
   }
 
   if (args.length !== 1) {

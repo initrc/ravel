@@ -26,7 +26,7 @@ dependencies:
 - The manual variant stops after the approved commit, reports the branch for user-owned integration, and contains no workmux command.
 - Neither variant contains an agent command, base/main branch name, worktree path, or Ravel configuration; workmux remembers and resolves the base and merge target for its variant.
 - Prompt generation does not access the clipboard; T0045 owns manual/error fallback copying.
-- A derived `ready-to-merge` task does not generate a new implementation prompt.
+- A derived `merge-ready` task does not generate a new implementation prompt.
 - Tests cover every lifecycle step, launch-mode variant, notification variant and trigger, exact commit formatting, workmux commands, conflict recovery, new versus resumed status wording, and the absence of clipboard side effects.
 - The project builds successfully, `npm run lint` passes, and `npm test` passes in full.
 

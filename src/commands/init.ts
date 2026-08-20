@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { RavelProject } from "../models/project.js";
 
 function writeAgentsFile(cwd: string, templatesDir: string): void {
   const agentsPath = path.join(cwd, "AGENTS.md");
@@ -49,17 +50,15 @@ export function initCommand(
   cwd: string,
   templatesDir: string,
 ): void {
-  const docsDir = path.join(cwd, "ravel", "docs");
-  const tasksDir = path.join(cwd, "ravel", "tasks");
-  const conventionsPath = path.join(docsDir, "ravel-conventions.md");
+  const project = new RavelProject(cwd);
 
-  fs.mkdirSync(docsDir, { recursive: true });
-  fs.mkdirSync(tasksDir, { recursive: true });
+  fs.mkdirSync(project.docsDir, { recursive: true });
+  fs.mkdirSync(project.tasksDir, { recursive: true });
 
-  if (!fs.existsSync(conventionsPath)) {
+  if (!fs.existsSync(project.conventionsPath)) {
     fs.copyFileSync(
       path.join(templatesDir, "ravel-conventions.md"),
-      conventionsPath,
+      project.conventionsPath,
     );
   }
 

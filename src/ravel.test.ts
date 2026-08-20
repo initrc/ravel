@@ -12,7 +12,44 @@ import {
 } from "vitest";
 import { CheckItem, CheckLevel, CheckState } from "./doctor/check.js";
 import { Doctor, DoctorDisplay } from "./doctor/doctor.js";
+import { type CommandResult, type CommandRunner } from "./commands/process.js";
+import { TaskPicker } from "./task-picker.js";
 import { runCli } from "./ravel.js";
+
+class PickerCommandRunner implements CommandRunner {
+  constructor(
+    private readonly gitResult: CommandResult,
+    private readonly fzfResult: CommandResult,
+  ) {}
+
+  run(command: string): CommandResult {
+    return command === "git" ? this.gitResult : this.fzfResult;
+  }
+}
+
+function writeTask(
+  root: string,
+  filename: string,
+  status: string,
+  dependencies: string[] = [],
+): string {
+  const taskPath = path.join(root, "ravel", "tasks", filename);
+  fs.mkdirSync(path.dirname(taskPath), { recursive: true });
+  const id = filename.slice(0, filename.indexOf("-"));
+  const title = filename.slice(filename.indexOf("-") + 1, -3);
+  const content = [
+    "---",
+    `id: ${id}`,
+    `title: ${title}`,
+    `status: ${status}`,
+    `dependencies: ${JSON.stringify(dependencies)}`,
+    "---",
+    "Task body",
+    "",
+  ].join("\n");
+  fs.writeFileSync(taskPath, content);
+  return taskPath;
+}
 
 function fakeCheck(
   name: string,
@@ -88,20 +125,25 @@ describe("runCli", () => {
     ).toBe(true);
   });
 
-  it("leaves bare ravel as the T0043 handoff", () => {
+  it("runs the task picker after the mandatory preflight", () => {
     const doctor = new Doctor([
       fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
     ]);
     const checkDoctor = vi.spyOn(doctor, "check");
+    const picker = new TaskPicker(
+      new PickerCommandRunner(
+        { status: 1, stdout: "", stderr: "" },
+        { status: 130, stdout: "", stderr: "" },
+      ),
+    );
+    const pick = vi.spyOn(picker, "pick").mockReturnValue(undefined);
 
-    expect(runCli([], projectDir, templatesDir, doctor)).toBe(1);
+    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(0);
     expect(checkDoctor).toHaveBeenCalledWith(
       CheckLevel.Mandatory,
       DoctorDisplay.Failures,
     );
-    expect(error).toHaveBeenCalledWith(
-      "The Ravel task picker workflow arrives in T0043.",
-    );
+    expect(pick).toHaveBeenCalledWith(projectDir);
   });
 
   it("stops bare ravel when its mandatory preflight fails", () => {
@@ -113,8 +155,49 @@ describe("runCli", () => {
     expect(log).toHaveBeenCalledWith(
       "FAILED [mandatory] fzf: fzf not found",
     );
-    expect(error).not.toHaveBeenCalledWith(
-      "The Ravel task picker workflow arrives in T0043.",
+  });
+
+  it("fails without mutation when a blocked task is selected", () => {
+    fs.mkdirSync(path.join(projectDir, "ravel", "tasks"), { recursive: true });
+    writeTask(projectDir, "T0001-first.md", "new");
+    const blockedPath = writeTask(
+      projectDir,
+      "T0002-second.md",
+      "new",
+      ["T0001"],
+    );
+    const before = fs.readFileSync(blockedPath, "utf-8");
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
+    ]);
+    const picker = new TaskPicker(
+      new PickerCommandRunner(
+        { status: 1, stdout: "", stderr: "" },
+        { status: 0, stdout: "1\tcorrupted visible fields\n", stderr: "" },
+      ),
+    );
+
+    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(1);
+    expect(error).toHaveBeenCalledWith(
+      "T0002 is blocked by incomplete dependencies: T0001 (first)",
+    );
+    expect(fs.readFileSync(blockedPath, "utf-8")).toBe(before);
+  });
+
+  it("tells the user to initialize when no project is discoverable", () => {
+    const doctor = new Doctor([
+      fakeCheck("fzf", CheckLevel.Mandatory, CheckState.Passed, "fzf 0.60.3\n"),
+    ]);
+    const picker = new TaskPicker(
+      new PickerCommandRunner(
+        { status: 1, stdout: "", stderr: "" },
+        { status: 0, stdout: "", stderr: "" },
+      ),
+    );
+
+    expect(runCli([], projectDir, templatesDir, doctor, picker)).toBe(1);
+    expect(error).toHaveBeenCalledWith(
+      "Ravel is not initialized here. Run `ravel init`.",
     );
   });
 
