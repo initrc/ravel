@@ -1,7 +1,7 @@
 ---
 id: T0046
 title: Update v2 docs and package metadata
-status: new
+status: done
 dependencies:
   - T0045
 ---
