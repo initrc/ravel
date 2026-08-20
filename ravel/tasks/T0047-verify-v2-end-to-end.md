@@ -1,7 +1,7 @@
 ---
 id: T0047
 title: Verify v2 end to end
-status: new
+status: done
 dependencies:
   - T0046
 ---

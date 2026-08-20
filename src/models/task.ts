@@ -141,10 +141,3 @@ export class TaskCollection {
     return this.list().filter((t) => t.dependencies.includes(taskId));
   }
 }
-
-export function updateTaskStatus(filePath: string, newStatus: string): void {
-  const content = fs.readFileSync(filePath, "utf-8");
-  const gm = matter(content);
-  gm.data.status = newStatus;
-  fs.writeFileSync(filePath, matter.stringify(gm.content, gm.data));
-}

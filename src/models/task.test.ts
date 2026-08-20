@@ -5,7 +5,6 @@ import {
   parseFilename,
   parseTask,
   TaskCollection,
-  updateTaskStatus,
 } from "./task.js";
 
 // ---------------------------------------------------------------------------
@@ -328,52 +327,5 @@ describe("TaskCollection", () => {
     const collection = TaskCollection.load(tmpDir);
 
     expect(collection.getDependents("T0001")).toEqual([]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// updateTaskStatus
-// ---------------------------------------------------------------------------
-describe("updateTaskStatus", () => {
-  let tmpDir: string;
-  let filePath: string;
-
-  beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join("/tmp", "ravel-test-"));
-    filePath = path.join(tmpDir, "T0001-my-task.md");
-    const content = [
-      "---",
-      'id: "T0001"',
-      'title: "My task"',
-      'status: "new"',
-      "dependencies: []",
-      "---",
-      "Some body content",
-    ].join("\n");
-    fs.writeFileSync(filePath, content);
-  });
-
-  afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it("updates the status in the file", () => {
-    updateTaskStatus(filePath, "in-progress");
-    const task = parseTask(filePath);
-    expect(task.status).toBe("in-progress");
-  });
-
-  it("preserves other frontmatter fields", () => {
-    updateTaskStatus(filePath, "done");
-    const task = parseTask(filePath);
-    expect(task.id).toBe("T0001");
-    expect(task.title).toBe("My task");
-    expect(task.dependencies).toEqual([]);
-  });
-
-  it("preserves the body content", () => {
-    updateTaskStatus(filePath, "done");
-    const raw = fs.readFileSync(filePath, "utf-8");
-    expect(raw).toContain("Some body content");
   });
 });
