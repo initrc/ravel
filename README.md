@@ -1,6 +1,6 @@
 # Ravel
 
-Ravel is a small task orchestrator for interactive AI coding sessions. It keeps
+Ravel is a task orchestrator for interactive AI coding sessions. It keeps
 plans as version-controlled Markdown, lets you choose work with `fzf`, and
 hands each task to an AI agent with a task-specific review and integration
 prompt.
@@ -10,6 +10,8 @@ generation. [workmux](https://github.com/raine/workmux) owns the agent command,
 Git branches and worktrees, shared files, multiplexer windows, merge behavior,
 and cleanup. There is no Ravel server, database, runtime state, or
 configuration file.
+
+![Ravel v2](https://github.com/initrc/ravel/blob/main/assets/ravel-v2.png)
 
 ## Requirements
 
