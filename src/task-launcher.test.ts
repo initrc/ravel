@@ -72,17 +72,10 @@ function fakeCheck(
 
 function doctorWith(
   overrides: Partial<Record<"Git" | "tmux" | "workmux", CheckState>> = {},
-  passthroughState = CheckState.Passed,
-  passthroughOutput = "",
 ): Doctor {
   return new Doctor([
     fakeCheck("Git", overrides.Git ?? CheckState.Passed),
     fakeCheck("tmux", overrides.tmux ?? CheckState.Passed),
-    fakeCheck(
-      "tmux passthrough",
-      passthroughState,
-      passthroughOutput,
-    ),
     fakeCheck("workmux", overrides.workmux ?? CheckState.Passed),
   ]);
 }
@@ -150,7 +143,6 @@ describe("TaskLauncher", () => {
         doctor,
         commands,
         clipboardWriter,
-        {},
       );
 
       await expect(launcher.launch(makeResolvedTask(state), "/repo")).resolves
@@ -221,7 +213,6 @@ describe("TaskLauncher", () => {
       doctorWith(),
       new SystemCommandRunner(),
       clipboardWriter,
-      {},
     );
 
     try {
@@ -249,29 +240,6 @@ describe("TaskLauncher", () => {
     }
   });
 
-  it.each([CheckState.Warning, CheckState.Failed])(
-    "prints %s tmux passthrough guidance without blocking launch",
-    async (passthroughState) => {
-      const commands = new RecordingCommandRunner();
-      const launcher = new TaskLauncher(
-        doctorWith(
-          {},
-          passthroughState,
-          "set -g allow-passthrough all\ntmux set -g allow-passthrough all",
-        ),
-        commands,
-        clipboardWriter,
-      );
-
-      await expect(launcher.launch(makeResolvedTask(), "/repo")).resolves.toBe(0);
-
-      expect(commands.calls).toHaveLength(1);
-      expect(log).toHaveBeenCalledWith(
-        `${passthroughState} [recommended] tmux passthrough: set -g allow-passthrough all\ntmux set -g allow-passthrough all`,
-      );
-    },
-  );
-
   it.each(["Git", "tmux", "workmux"] as const)(
     "uses the manual prompt when %s is unavailable",
     async (tool) => {
@@ -280,7 +248,6 @@ describe("TaskLauncher", () => {
         doctorWith({ [tool]: CheckState.Failed }),
         commands,
         clipboardWriter,
-        {},
       );
 
       await expect(launcher.launch(makeResolvedTask(), "/repo")).resolves.toBe(0);
@@ -315,26 +282,6 @@ describe("TaskLauncher", () => {
       "Unavailable workflow tools: Git, tmux, workmux.",
     );
   });
-
-  it.each([
-    [undefined, "\\033]9;Ravel"],
-    ["/tmp/tmux-100/default,1,0", "\\033Ptmux;"],
-  ] as const)(
-    "selects the manual notification for TMUX=%s",
-    async (tmux, notificationSequence) => {
-      const env = tmux === undefined ? {} : { TMUX: tmux };
-      const launcher = new TaskLauncher(
-        doctorWith({ workmux: CheckState.Failed }),
-        new RecordingCommandRunner(),
-        clipboardWriter,
-        env,
-      );
-
-      await launcher.launch(makeResolvedTask(), "/repo");
-
-      expect(clipboardWriter.mock.calls[0][0]).toContain(notificationSequence);
-    },
-  );
 
   it("reopens merge-ready work without generating or copying a prompt", async () => {
     const commands = new RecordingCommandRunner();

@@ -33,9 +33,9 @@ Run the prerequisite checks at any time:
 ravel doctor
 ```
 
-`ravel doctor` checks `fzf` as mandatory and Git, tmux, tmux passthrough, and
-workmux as recommended. A missing recommended tool is reported but does not
-make the command fail.
+`ravel doctor` checks `fzf` as mandatory and Git, tmux, and workmux as
+recommended. A missing recommended tool is reported but does not make the
+command fail.
 
 ## Quick start
 
@@ -115,29 +115,17 @@ owns agent commands, base and merge branch behavior, worktree paths, copied or
 symlinked files, setup hooks, pane and window layouts, merging, and cleanup.
 Ravel neither reads nor writes workmux configuration.
 
-### tmux notifications
+### Notification ownership
 
-The generated task prompt tells the agent to send a best-effort OSC 9
-ready-for-review notification only after verification passes and the task has
-moved to `review`. OSC sequences must pass through tmux to reach the outer
-terminal.
+Ravel does not emit a system notification when a task becomes ready for
+review. The agent reports readiness and ends its turn, so any turn-completion
+notification belongs to the configured agent. Ravel does not install or
+require workmux agent-status hooks or tmux status icons.
 
-Add this persistent setting to `~/.tmux.conf`:
-
-```tmux
-set -g allow-passthrough all
-```
-
-Apply it immediately to a running tmux server with:
-
-```sh
-tmux set -g allow-passthrough all
-```
-
-Use `all` rather than `on`: `on` passes sequences only from visible panes, but
-an agent in a workmux pane can become ready while that pane is hidden. Ravel
-warns when passthrough is limited or disabled, but the warning does not block
-workmux launch.
+After approval and a successful merge, the retained
+`workmux merge --rebase --notification` command lets workmux send its native
+merge notification. That notification is independent of the agent's
+turn-completion behavior.
 
 ## The task picker
 
@@ -191,24 +179,8 @@ instructions. Before approval, the agent:
 1. Moves a new task to `in-progress` before implementation.
 2. Implements only that task and runs its required verification.
 3. Moves the task to `review` when it is ready for a human.
-4. Sends a best-effort OSC 9 notification and stops without committing.
+4. Reports that the task is ready for review and stops without committing.
 5. Waits for the user to say `LGTM` explicitly.
-
-Outside tmux, the notification command is:
-
-```sh
-printf '\033]9;Ravel: T0001 ready for review\007'
-```
-
-Inside tmux, the prompt uses the passthrough form:
-
-```sh
-printf '\033Ptmux;\033\033]9;Ravel: T0001 ready for review\007\033\\'
-```
-
-Notification failure never changes the review gate: the agent still reports
-that the task is ready and waits for `LGTM`. Merely selecting a task does not
-send a notification.
 
 After explicit `LGTM`, the workmux prompt tells the agent to:
 
@@ -221,9 +193,9 @@ After explicit `LGTM`, the workmux prompt tells the agent to:
 
 The separate rebase prevents a conflict-free merge from integrating and
 cleaning up the worktree before the rebased result has been tested. Workmux
-resolves the saved base and merge target, performs the merge, sends its
-configured notification, and cleans up its resources. The generated prompt
-explicitly marks these two post-`LGTM` workmux commands as narrow,
+resolves the saved base and merge target, performs the merge, sends its native
+successful-merge notification, and cleans up its resources. The generated
+prompt explicitly marks these two post-`LGTM` workmux commands as narrow,
 task-specific exceptions to the general Ravel prohibitions on agent-owned
 merge and deletion. Direct Git push, merge, rebase, worktree removal, and
 branch deletion remain prohibited.

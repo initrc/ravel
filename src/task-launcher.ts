@@ -36,7 +36,6 @@ export class TaskLauncher implements TaskLaunch {
     private readonly doctor: Doctor = ravelDoctor,
     private readonly commands: CommandRunner = new SystemCommandRunner(),
     private readonly clipboardWriter: ClipboardWriter = writeClipboard,
-    private readonly env: NodeJS.ProcessEnv = process.env,
   ) {}
 
   async launch(selectedTask: ResolvedTask, cwd: string): Promise<number> {
@@ -113,7 +112,6 @@ export class TaskLauncher implements TaskLaunch {
 
     const prompt = generateTaskPrompt(selectedTask, {
       mode: "manual",
-      notificationMode: this.env.TMUX ? "tmux" : "direct",
     });
     if (prompt === undefined) {
       throw new Error(`No manual prompt was generated for ${selectedTask.task.id}.`);

@@ -1,7 +1,6 @@
 import { CheckLevel, CheckState, type CheckItem } from "./check.js";
 import { fzfCheck } from "./checks/fzf.js";
 import { gitCheck } from "./checks/git.js";
-import { tmuxPassthroughCheck } from "./checks/tmux-passthrough.js";
 import { tmuxCheck } from "./checks/tmux.js";
 import { workmuxCheck } from "./checks/workmux.js";
 
@@ -15,7 +14,6 @@ export const doctorChecks: readonly CheckItem[] = [
   fzfCheck,
   gitCheck,
   tmuxCheck,
-  tmuxPassthroughCheck,
   workmuxCheck,
 ];
 

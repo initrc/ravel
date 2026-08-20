@@ -133,30 +133,11 @@ The initial checks are:
 | fzf | `fzf --version` | mandatory | The task picker cannot run without it. |
 | Git | `git --version` | recommended | Enables registered-worktree discovery and is required by workmux. |
 | tmux | `tmux -V` | recommended | Enables the intended interactive workmux window workflow. |
-| tmux passthrough | `tmux show-options -gqv allow-passthrough` | recommended | Lets agent-sent terminal notifications escape tmux. |
 | workmux | `workmux --version` | recommended | Enables automatic worktree and agent launching. |
 
 A missing command and a non-zero command exit are failed checks. Successful
 and failed command output is preserved so `ravel doctor` can show useful
 version or error details.
-
-The tmux passthrough check runs only when `$TMUX` is set. Outside tmux it is
-reported as not applicable. Inside tmux, `all` passes; `on` is reported as a
-limited warning because tmux passes sequences only from visible panes, and
-`off` or an empty value fails the recommended check. Ravel prints:
-
-```tmux
-set -g allow-passthrough all
-```
-
-and the live-server equivalent:
-
-```sh
-tmux set -g allow-passthrough all
-```
-
-Ravel never edits tmux configuration. `all` is preferred over `on` because a
-workmux agent often becomes ready while its pane is not visible.
 
 `ravel doctor` runs all checks. It exits with status 1 when any mandatory
 check fails and status 0 otherwise. Recommended failures are warnings and do
@@ -288,9 +269,9 @@ automatic launch and a manual variant for clipboard fallback.
 2. Implement only the selected task.
 3. Run the verification required by the task and repository instructions.
 4. Update the task status to `review`.
-5. Send the best-effort ready-for-review notification described below.
-6. Do not commit, rebase, merge, or clean up.
-7. Stop and wait for explicit `LGTM`.
+5. Do not commit, rebase, merge, or clean up.
+6. Report that the task is ready for review, end the turn, and wait for explicit
+   `LGTM`.
 
 ### After explicit `LGTM` with workmux
 
@@ -336,28 +317,17 @@ rebase, merge, push, worktree removal, and branch deletion because workmux is
 unavailable or its launch failed. The user remains responsible for integration
 and cleanup in this fallback workflow.
 
-## Ready-for-review Notification
+## Notification Boundary
 
-The prompt instructs the agent to send a best-effort OSC 9 notification after
-verification succeeds and the task status becomes `review`.
+Ravel does not emit a system notification when a task becomes ready for
+review. The agent reports readiness and ends its turn, so any turn-completion
+notification is owned by the configured agent. Ravel does not install,
+configure, or require workmux agent-status hooks or tmux status icons.
 
-Outside tmux:
-
-```sh
-printf '\033]9;Ravel: T0001 ready for review\007'
-```
-
-Inside tmux:
-
-```sh
-printf '\033Ptmux;\033\033]9;Ravel: T0001 ready for review\007\033\\'
-```
-
-The agent chooses the command based on whether `$TMUX` is set. Notification
-failure is non-blocking: the agent still reports that review is ready and
-waits for `LGTM`. Ravel sends no notification merely because the task was
-selected. The tmux form requires `allow-passthrough`; `all` also works when
-the workmux pane is not visible.
+The post-approval workmux lifecycle retains
+`workmux merge --rebase --notification`. Workmux sends this native notification
+only after a successful merge; it is separate from agent-owned turn-completion
+notifications and does not require Ravel to inspect terminal state.
 
 ## workmux Integration
 
@@ -378,10 +348,6 @@ is delegated to workmux, which knows how to invoke the agent configured in its
 global or project configuration. It passes the prompt directly to matching
 agent panes using that agent's supported CLI syntax, so Ravel does not also
 copy the prompt to the clipboard on this successful path.
-
-The tmux passthrough result does not gate launch. A disabled or limited setting
-only warns that the ready-for-review notification may not reach the outer
-terminal; workmux creation and prompt injection still proceed.
 
 For a `merge-ready` task, Ravel instead executes the same command without
 `--prompt`. This reopens the registered worktree without starting a duplicate
@@ -520,8 +486,7 @@ or an installed coding agent.
 - Run every check command and preserve its output.
 - Report mandatory and recommended failures distinctly.
 - Return status 1 only for mandatory failure.
-- Check tmux passthrough only inside tmux, distinguish `all`, limited `on`, and
-  disabled values, and print configuration guidance without mutation.
+- Verify the Git, tmux, and workmux availability checks used by task launching.
 - Prove bare `ravel` runs only mandatory checks before the picker.
 
 ### Tasks and picker
@@ -539,16 +504,16 @@ or an installed coding agent.
 ### Prompt and workmux
 
 - Include the task identity, initial `in-progress` transition, verification,
-  `review` gate, best-effort notification, explicit `LGTM` gate, exact
-  one-commit format, separate workmux rebase and verification, and workmux
-  merge handoff in the prompt.
-- Verify both OSC 9 notification commands and their non-blocking trigger.
+  `review` gate, readiness report, explicit `LGTM` gate, exact one-commit
+  format, separate workmux rebase and verification, and workmux merge handoff
+  in the prompt.
+- Verify neither prompt variant contains Ravel-owned notification commands or
+  selects behavior from terminal state.
 - Exclude agent and branch names and prohibit direct push, merge, and cleanup
   commands while allowing only the named workmux lifecycle after approval.
 - Invoke `workmux add <branch> --open-if-exists --prompt <prompt>` as argument
   arrays without shell interpolation when the Git, tmux, and workmux
-  availability checks pass, without also copying the prompt. Passthrough
-  warnings do not block launch.
+  availability checks pass, without also copying the prompt.
 - Reopen `merge-ready` worktrees without a new implementation prompt.
 - Generate, print, and copy the manual prompt variant only when an availability
   check or workmux launch fails.
@@ -559,8 +524,8 @@ or an installed coding agent.
 - `ravel`, `ravel init`, and `ravel doctor` are the complete documented v2
   workflow.
 - README migration guidance says only to remove `.ravel/`.
-- README and doctor document tmux passthrough for ready-for-review
-  notifications.
+- README and design documentation distinguish agent-owned turn-completion
+  notifications from workmux's retained native successful-merge notification.
 - The conventions template and generated `AGENTS.md` section remain reusable;
   the workmux task prompt supplies the narrow post-approval lifecycle
   exceptions.

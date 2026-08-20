@@ -7,19 +7,13 @@ import {
 import type { Task } from "../models/task.js";
 import {
   generateTaskPrompt,
-  type PromptLaunch,
   type PromptLaunchMode,
-  type PromptNotificationMode,
 } from "./task-prompt.js";
 
 vi.mock("../commands/clipboard.js", () => ({
   writeClipboard: vi.fn(),
 }));
 
-const DIRECT_NOTIFICATION =
-  "printf '\\033]9;Ravel: T0044 ready for review\\007'";
-const TMUX_NOTIFICATION =
-  "printf '\\033Ptmux;\\033\\033]9;Ravel: T0044 ready for review\\007\\033\\\\'";
 const COMMIT_MESSAGE = "T0044: Generate the v2 task prompt";
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -52,14 +46,10 @@ function makeResolvedTask(
 function promptFor(
   launchMode: PromptLaunchMode,
   state: TaskPickerState = TaskPickerState.New,
-  manualNotificationMode: PromptNotificationMode = "direct",
 ): string {
-  const launch: PromptLaunch = launchMode === "workmux"
-    ? { mode: "workmux" }
-    : { mode: "manual", notificationMode: manualNotificationMode };
   return generateTaskPrompt(
     makeResolvedTask(state),
-    launch,
+    { mode: launchMode },
   )!;
 }
 
@@ -125,44 +115,22 @@ describe("generateTaskPrompt", () => {
       expect(prompt).toContain("update the task status to `review`");
       expect(prompt).toContain("Do not commit or perform integration or cleanup");
       expect(prompt).toContain(
-        "Stop and explicitly wait for the user to say `LGTM`",
+        "stop, and explicitly wait for the user to say `LGTM`",
       );
     },
   );
 
-  it.each<[
-    string,
-    PromptLaunch,
-    string,
-    string,
-  ]>([
-    ["workmux", { mode: "workmux" }, TMUX_NOTIFICATION, DIRECT_NOTIFICATION],
-    [
-      "manual outside tmux",
-      { mode: "manual", notificationMode: "direct" },
-      DIRECT_NOTIFICATION,
-      TMUX_NOTIFICATION,
-    ],
-    [
-      "manual inside tmux",
-      { mode: "manual", notificationMode: "tmux" },
-      TMUX_NOTIFICATION,
-      DIRECT_NOTIFICATION,
-    ],
-  ] as const)(
-    "for %s mode contains only its valid notification command",
-    (_name, launch, expectedCommand, excludedCommand) => {
-      const prompt = generateTaskPrompt(makeResolvedTask(), launch)!;
+  it.each<PromptLaunchMode>(["workmux", "manual"])(
+    "contains no Ravel-owned ready-for-review notification in the %s prompt",
+    (launchMode) => {
+      const prompt = promptFor(launchMode);
 
-      expect(prompt).toContain(expectedCommand);
-      expect(prompt).not.toContain(excludedCommand);
-      expect(prompt).toContain("Notification failure is non-blocking");
-      expect(prompt).toContain(
-        "Do not send this notification merely because the task was selected",
-      );
-      expect(prompt).toContain(
-        "only after verification succeeds and the status is `review`",
-      );
+      expect(prompt).toContain("Report that the task is ready for review");
+      expect(prompt).not.toContain("OSC 9");
+      expect(prompt).not.toContain("printf");
+      expect(prompt).not.toContain("$TMUX");
+      expect(prompt).not.toContain("Notification failure is non-blocking");
+      expect(prompt).not.toContain("ready-for-review notification");
     },
   );
 
@@ -267,16 +235,13 @@ describe("generateTaskPrompt", () => {
     expect(() =>
       generateTaskPrompt(
         makeResolvedTask(TaskPickerState.Blocked),
-        { mode: "manual", notificationMode: "direct" },
+        { mode: "manual" },
       ),
     ).toThrow("Cannot generate an implementation prompt for blocked task T0044");
   });
 
   it("does not access the clipboard", () => {
-    generateTaskPrompt(makeResolvedTask(), {
-      mode: "manual",
-      notificationMode: "direct",
-    });
+    generateTaskPrompt(makeResolvedTask(), { mode: "manual" });
     generateTaskPrompt(makeResolvedTask(), { mode: "workmux" });
 
     expect(writeClipboard).not.toHaveBeenCalled();

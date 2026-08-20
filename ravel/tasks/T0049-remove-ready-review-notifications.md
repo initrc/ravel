@@ -1,7 +1,7 @@
 ---
 id: T0049
 title: Remove ready-for-review notification logic
-status: new
+status: done
 dependencies: []
 ---
 

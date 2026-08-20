@@ -13,12 +13,12 @@ dependencies:
 
 # Acceptance
 
-- Temporary-directory tests cover primary and linked project discovery, initialization, every doctor level and exit path, tmux passthrough values, Git porcelain worktree mapping, live task states, fzf ordering and cancellation, blocked and `merge-ready` tasks, workmux and manual prompt variants, prompt notifications and post-approval integration, workmux arguments and failures, and manual fallback.
+- Temporary-directory tests cover primary and linked project discovery, initialization, every doctor level and exit path, Git porcelain worktree mapping, live task states, fzf ordering and cancellation, blocked and `merge-ready` tasks, workmux and manual prompt variants, the notification ownership boundary and post-approval integration, workmux arguments and failures, and manual fallback.
 - Test doubles ensure the suite does not require interactive fzf, Git repositories, a tmux server, workmux, a real clipboard, or an installed coding agent.
 - `ravel`, `ravel init`, and `ravel doctor` are the complete documented public workflow; removed v1 subcommands fail.
 - Ravel uses Git only for read-only registered-worktree discovery; creation, opening, merging, repair, removal, and tmux behavior occur only through the workmux delegation boundary.
 - README migration instructions say only to remove `.ravel/` and preserve the existing committed Ravel planning files and `AGENTS.md` guidance.
-- Source, dependency, and clean-build audits find no Ink/React TUI, Commander routing, Chokidar watcher, session, Ravel config, mutating Git lifecycle, direct tmux launcher, direct agent launcher, Ravel-owned integration, notification process/config, or cleanup-command remnants.
+- Source, dependency, and clean-build audits find no Ink/React TUI, Commander routing, Chokidar watcher, session, Ravel config, mutating Git lifecycle, direct tmux launcher, direct agent launcher, Ravel-owned integration, ready-for-review notification process/config, workmux agent-status hooks, tmux status icons, or cleanup-command remnants, while preserving the workmux successful-merge notification command.
 - A package dry run shows only the intended v2 files and correct `2.0.0` metadata.
 - The project builds successfully, `npm run lint` passes, and `npm test` passes in full.
 

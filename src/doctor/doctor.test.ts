@@ -59,12 +59,6 @@ describe("doctor checks", () => {
         args: ["-V"],
       },
       {
-        name: "tmux passthrough",
-        level: CheckLevel.Recommended,
-        command: "tmux",
-        args: ["show-options", "-gqv", "allow-passthrough"],
-      },
-      {
         name: "workmux",
         level: CheckLevel.Recommended,
         command: "workmux",
@@ -132,7 +126,7 @@ describe("doctor checks", () => {
 
   it("can print failures and warnings as issues", () => {
     const warning = fakeCheck(
-      "tmux passthrough",
+      "resource limits",
       CheckLevel.Recommended,
       CheckState.Warning,
       "limited guidance",
@@ -151,7 +145,7 @@ describe("doctor checks", () => {
     );
 
     expect(log).toHaveBeenCalledExactlyOnceWith(
-      "WARNING [recommended] tmux passthrough: limited guidance",
+      "WARNING [recommended] resource limits: limited guidance",
     );
   });
 });

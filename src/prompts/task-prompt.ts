@@ -5,15 +5,7 @@ import {
 } from "../models/resolved-task.js";
 
 export type PromptLaunchMode = "workmux" | "manual";
-export type PromptNotificationMode = "direct" | "tmux";
-export type PromptLaunch =
-  | { mode: "workmux" }
-  | { mode: "manual"; notificationMode: PromptNotificationMode };
-
-const DIRECT_NOTIFICATION =
-  "printf '\\033]9;Ravel: TASK_ID ready for review\\007'";
-const TMUX_NOTIFICATION =
-  "printf '\\033Ptmux;\\033\\033]9;Ravel: TASK_ID ready for review\\007\\033\\\\'";
+export type PromptLaunch = { mode: PromptLaunchMode };
 
 /** Generates task instructions without changing task, Git, process, or clipboard state. */
 export function generateTaskPrompt(
@@ -35,12 +27,6 @@ export function generateTaskPrompt(
     selectedTask.state === TaskPickerState.New
       ? "\nBefore implementation, update the task status from `new` to `in-progress`.\n"
       : "";
-  const notificationCommand = (
-    launch.mode === "workmux" || launch.notificationMode === "tmux"
-      ? TMUX_NOTIFICATION
-      : DIRECT_NOTIFICATION
-  ).replace("TASK_ID", task.id);
-
   const sharedInstructions = `You are working on task ${task.id}.
 
 The repository-relative task file is:
@@ -52,16 +38,8 @@ Before approval:
 1. Implement only the scope of ${task.id}.
 2. Run all verification required by the task and repository instructions.
 3. When the implementation is ready for human review, update the task status to \`review\`.
-4. Send the best-effort ready-for-review notification by running exactly:
-
-   \`\`\`sh
-   ${notificationCommand}
-   \`\`\`
-
-5. Do not commit or perform integration or cleanup. Do not push, rebase, merge, remove worktrees, or delete branches.
-6. Stop and explicitly wait for the user to say \`LGTM\`.
-
-Notification failure is non-blocking: still report that the task is ready for review and wait for \`LGTM\`. Do not send this notification merely because the task was selected; send it only after verification succeeds and the status is \`review\`.`;
+4. Do not commit or perform integration or cleanup. Do not push, rebase, merge, remove worktrees, or delete branches.
+5. Report that the task is ready for review, stop, and explicitly wait for the user to say \`LGTM\`.`;
 
   const approvedInstructions = launch.mode === "workmux"
     ? workmuxApprovedInstructions(task.id, task.title)
