@@ -1,7 +1,7 @@
 ---
 id: T0048
 title: Fix fzf task filtering
-status: new
+status: done
 dependencies: []
 ---
 

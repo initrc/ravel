@@ -163,8 +163,11 @@ describe("TaskPicker", () => {
     expect(fzfCall.command).toBe("fzf");
     expect(fzfCall.args).toContain("--no-sort");
     expect(fzfCall.args).toContain("--header=Enter: select task | Escape: cancel");
-    expect(fzfCall.args).toContain("--with-nth=2..");
-    expect(fzfCall.args).toContain("--nth=2..");
+    expect(
+      fzfCall.args.filter((argument) =>
+        /^(?:--delimiter|--with-nth|--nth)=/.test(argument)
+      ),
+    ).toEqual(["--delimiter=\t", "--with-nth=2.."]);
     expect(fzfCall.args.some((argument) => argument.includes("tmux"))).toBe(false);
 
     const visibleRows = fzfCall.options.input

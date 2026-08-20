@@ -87,8 +87,6 @@ export class TaskPicker {
         "--delimiter=\t",
         // Display fields 2 through the last field, hiding the numeric key.
         "--with-nth=2..",
-        // Search fields 2 through the last field, excluding the numeric key.
-        "--nth=2..",
         // Show the complete resolved task file for the highlighted row.
         `--preview=${previewCommand(tasks.tasks)}`,
       ],
