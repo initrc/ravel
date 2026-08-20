@@ -1,7 +1,7 @@
 ---
 id: T0044
 title: Generate the v2 task prompt
-status: new
+status: done
 dependencies:
   - T0043
 ---
@@ -16,7 +16,7 @@ dependencies:
 - The prompt names the task ID and repository-relative task file and tells the agent to follow `AGENTS.md` and the task.
 - A `new` task prompt instructs the agent to set `in-progress` before implementation.
 - Before approval, the prompt requires task-scoped implementation, repository verification, status `review`, a best-effort ready-for-review notification, no commit or integration, and an explicit wait for `LGTM`.
-- The prompt contains the exact direct and tmux-wrapped OSC 9 `printf` commands, chooses by `$TMUX`, treats notification failure as non-blocking, and never notifies merely because a task was selected.
+- Ravel selects the notification mode for the target environment; the prompt contains only the corresponding exact direct or tmux-wrapped OSC 9 `printf` command, treats notification failure as non-blocking, and never notifies merely because a task was selected.
 - After `LGTM`, both variants require status `done` and exactly one local commit named `<task-id>: <task-title>`.
 - The workmux variant then requires `workmux rebase`, conflict resolution with `git rebase --continue` without another commit, and full verification of the rebased result.
 - Only after verification, the workmux variant runs `workmux merge --rebase --notification`; if its rebase finds newer conflicts, the agent resolves them, reverifies, and retries.
@@ -27,7 +27,7 @@ dependencies:
 - Neither variant contains an agent command, base/main branch name, worktree path, or Ravel configuration; workmux remembers and resolves the base and merge target for its variant.
 - Prompt generation does not access the clipboard; T0045 owns manual/error fallback copying.
 - A derived `merge-ready` task does not generate a new implementation prompt.
-- Tests cover every lifecycle step, launch-mode variant, notification variant and trigger, exact commit formatting, workmux commands, conflict recovery, new versus resumed status wording, and the absence of clipboard side effects.
+- Tests cover every lifecycle step, launch-mode variant, notification variant and trigger, exact commit formatting, workmux commands, conflict recovery, the initial status instruction for new tasks and its absence for resumed tasks, and the absence of clipboard side effects.
 - The project builds successfully, `npm run lint` passes, and `npm test` passes in full.
 
 # Implementation Notes
