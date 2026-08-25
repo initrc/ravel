@@ -14,8 +14,6 @@ vi.mock("../commands/clipboard.js", () => ({
   writeClipboard: vi.fn(),
 }));
 
-const COMMIT_MESSAGE = "T0044: Generate the v2 task prompt";
-
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: "T0044",
@@ -55,7 +53,7 @@ function promptFor(
 
 describe("generateTaskPrompt", () => {
   it.each<PromptLaunchMode>(["workmux", "manual"])(
-    "identifies the task and governing instructions in the %s prompt",
+    "identifies the task and %s workflow authority",
     (launchMode) => {
       const prompt = promptFor(launchMode);
 
@@ -63,9 +61,13 @@ describe("generateTaskPrompt", () => {
       expect(prompt).toContain(
         "ravel/tasks/T0044-generate-v2-task-prompt.md",
       );
-      expect(prompt).toContain("Follow all applicable `AGENTS.md` instructions");
+      expect(prompt).toContain(`launched in \`${launchMode}\` mode`);
+      expect(prompt).toContain("all applicable `AGENTS.md` instructions");
       expect(prompt).toContain("the task file");
-      expect(prompt).toContain("Implement only the scope of T0044");
+      expect(prompt).toContain("`ravel/docs/ravel-conventions.md`");
+      expect(prompt).toContain(
+        `Follow the \`${launchMode}\` workflow under`,
+      );
     },
   );
 
@@ -83,127 +85,15 @@ describe("generateTaskPrompt", () => {
     expect(prompt).not.toContain("/custom worktree");
   });
 
-  it("requires a new task to transition to in-progress", () => {
-    const prompt = promptFor("workmux");
-
-    expect(prompt).toContain(
-      "Before implementation, update the task status from `new` to `in-progress`.",
-    );
-    expect(prompt).not.toContain("This is a resumed task");
-  });
-
-  it.each([TaskPickerState.InProgress, TaskPickerState.ReviewReady])(
-    "omits initial status instructions for a resumed %s task",
+  it.each([TaskPickerState.New, TaskPickerState.InProgress, TaskPickerState.ReviewReady])(
+    "delegates the %s task lifecycle to the conventions document",
     (state) => {
       const prompt = promptFor("workmux", state);
 
-      expect(prompt).not.toContain("This is a resumed task");
-      expect(prompt).not.toContain(
-        "Before implementation, update the task status from `new`",
-      );
-    },
-  );
-
-  it.each<PromptLaunchMode>(["workmux", "manual"])(
-    "requires the complete pre-approval lifecycle in the %s prompt",
-    (launchMode) => {
-      const prompt = promptFor(launchMode);
-
-      expect(prompt).toContain(
-        "Run all verification required by the task and repository instructions",
-      );
-      expect(prompt).toContain("update the task status to `review`");
-      expect(prompt).toContain("Do not commit or perform integration or cleanup");
-      expect(prompt).toContain(
-        "stop, and explicitly wait for the user to say `LGTM`",
-      );
-    },
-  );
-
-  it.each<PromptLaunchMode>(["workmux", "manual"])(
-    "contains no Ravel-owned ready-for-review notification in the %s prompt",
-    (launchMode) => {
-      const prompt = promptFor(launchMode);
-
-      expect(prompt).toContain("Report that the task is ready for review");
-      expect(prompt).not.toContain("OSC 9");
-      expect(prompt).not.toContain("printf");
-      expect(prompt).not.toContain("$TMUX");
-      expect(prompt).not.toContain("Notification failure is non-blocking");
-      expect(prompt).not.toContain("ready-for-review notification");
-    },
-  );
-
-  it.each<PromptLaunchMode>(["workmux", "manual"])(
-    "requires done and the exact one-commit format in the %s prompt",
-    (launchMode) => {
-      const prompt = promptFor(launchMode);
-
-      expect(prompt).toContain("After the user explicitly says `LGTM`");
-      expect(prompt).toContain("Update the task status to `done`");
-      expect(prompt).toContain("Create exactly one local commit");
-      expect(prompt).toContain(COMMIT_MESSAGE);
-    },
-  );
-
-  it("defines the complete approved workmux lifecycle", () => {
-    const prompt = promptFor("workmux");
-    const rebaseIndex = prompt.indexOf("Run `workmux rebase`");
-    const verificationIndex = prompt.indexOf(
-      "Run the full verification required",
-      rebaseIndex,
-    );
-    const mergeIndex = prompt.indexOf(
-      "run `workmux merge --rebase --notification`",
-      verificationIndex,
-    );
-
-    expect(rebaseIndex).toBeGreaterThan(-1);
-    expect(verificationIndex).toBeGreaterThan(rebaseIndex);
-    expect(mergeIndex).toBeGreaterThan(verificationIndex);
-    expect(prompt).toContain("run `git rebase --continue`");
-    expect(prompt).toContain("Do not create another commit");
-    expect(prompt).toContain("If the merge-time rebase finds newer conflicts");
-    expect(prompt).toContain(
-      "rerun the full verification, and retry `workmux merge --rebase --notification`",
-    );
-  });
-
-  it("explains the separate rebase and narrow lifecycle exceptions", () => {
-    const prompt = promptFor("workmux");
-
-    expect(prompt).toContain(
-      "could otherwise integrate and clean up the worktree before the rebased result is verified",
-    );
-    expect(prompt).toContain(
-      "narrow, task-specific exceptions to the general Ravel convention against agent-owned merge and worktree deletion",
-    );
-    expect(prompt).toContain("authorized only after explicit `LGTM`");
-  });
-
-  it("leaves manual integration to the user without a workmux command", () => {
-    const prompt = promptFor("manual");
-
-    expect(prompt).toContain("Stop after the approved commit");
-    expect(prompt).toContain("report the current branch name to the user");
-    expect(prompt).toContain("user-owned integration and cleanup");
-    expect(prompt).not.toContain("workmux");
-  });
-
-  it.each<PromptLaunchMode>(["workmux", "manual"])(
-    "prohibits direct repository lifecycle commands in the %s prompt",
-    (launchMode) => {
-      const prompt = promptFor(launchMode);
-
-      for (const command of [
-        "`git push`",
-        "`git merge`",
-        "`git rebase`",
-        "`git worktree remove`",
-        "`git branch -d`",
-      ]) {
-        expect(prompt).toContain(command);
-      }
+      expect(prompt).not.toContain("update the task status");
+      expect(prompt).not.toContain("LGTM");
+      expect(prompt).not.toContain("workmux rebase");
+      expect(prompt).not.toContain("git push");
     },
   );
 

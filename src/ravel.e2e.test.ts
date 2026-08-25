@@ -244,9 +244,9 @@ describe("the built ravel executable", () => {
       "--prompt",
     ]);
     expect(workmuxArguments[4]).toContain("You are working on task T0005.");
-    expect(workmuxArguments[4]).toContain("workmux rebase");
+    expect(workmuxArguments[4]).toContain("launched in `workmux` mode");
     expect(workmuxArguments[4]).toContain(
-      "workmux merge --rebase --notification",
+      "`ravel/docs/ravel-conventions.md`",
     );
     expect(workmuxArguments[4]).not.toContain("notify-send");
     expect(workmuxArguments[4]).not.toContain("osascript");
@@ -342,8 +342,8 @@ describe("the built ravel executable", () => {
     expect(result.stderr).toContain("Unavailable workflow tools: workmux.");
     const copiedPrompt = fs.readFileSync(clipboardPath, "utf8");
     expect(result.stdout).toContain(`Prompt for AI agent:\n\n${copiedPrompt}`);
-    expect(copiedPrompt).toContain("update the task status from `new` to `in-progress`");
-    expect(copiedPrompt).toContain("user-owned integration and cleanup");
+    expect(copiedPrompt).toContain("launched in `manual` mode");
+    expect(copiedPrompt).toContain("Follow the `manual` workflow");
     expect(copiedPrompt).not.toContain("`workmux ");
     expect(fs.existsSync(workmuxArgumentsPath)).toBe(false);
     expect(fs.readFileSync(taskPath, "utf8")).toBe(before);
@@ -367,7 +367,7 @@ describe("the built ravel executable", () => {
     expect(JSON.parse(fs.readFileSync(workmuxArgumentsPath, "utf8")))
       .toContain("--prompt");
     expect(fs.readFileSync(clipboardPath, "utf8")).toContain(
-      "user-owned integration and cleanup",
+      "launched in `manual` mode",
     );
   });
 

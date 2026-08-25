@@ -130,12 +130,12 @@ describe("TaskLauncher", () => {
   });
 
   it.each([
-    [TaskPickerState.New, true],
-    [TaskPickerState.InProgress, false],
-    [TaskPickerState.ReviewReady, false],
-  ] as const)(
+    TaskPickerState.New,
+    TaskPickerState.InProgress,
+    TaskPickerState.ReviewReady,
+  ])(
     "delegates a %s task with the workmux prompt",
-    async (state, expectsStartingInstruction) => {
+    async (state) => {
       const doctor = doctorWith();
       const check = vi.spyOn(doctor, "check");
       const commands = new RecordingCommandRunner();
@@ -163,9 +163,8 @@ describe("TaskLauncher", () => {
       ]);
       expect(call.options).toEqual({ cwd: "/repo", inheritStdio: true });
       const prompt = call.args[4];
-      expect(prompt).toContain("Run `workmux rebase`");
-      expect(prompt.includes("update the task status from `new` to `in-progress`"))
-        .toBe(expectsStartingInstruction);
+      expect(prompt).toContain("launched in `workmux` mode");
+      expect(prompt).toContain("`ravel/docs/ravel-conventions.md`");
       expect(clipboardWriter).not.toHaveBeenCalled();
     },
   );
@@ -232,7 +231,7 @@ describe("TaskLauncher", () => {
         "--open-if-exists",
         "--prompt",
       ]);
-      expect(receivedArguments[4]).toContain("Run `workmux rebase`");
+      expect(receivedArguments[4]).toContain("launched in `workmux` mode");
       expect(fs.existsSync(unexpectedPath)).toBe(false);
     } finally {
       process.env.PATH = originalPath;
@@ -257,7 +256,8 @@ describe("TaskLauncher", () => {
       expect(clipboardWriter).toHaveBeenCalledOnce();
       const copiedPrompt = String(clipboardWriter.mock.calls[0][0]);
       expect(copiedPrompt).toBe(promptPrintedBy(log));
-      expect(copiedPrompt).toContain("user-owned integration and cleanup");
+      expect(copiedPrompt).toContain("launched in `manual` mode");
+      expect(copiedPrompt).toContain("Follow the `manual` workflow");
       expect(copiedPrompt).not.toContain("`workmux ");
       expect(log).toHaveBeenCalledWith(
         "Prompt copied to the clipboard. Open an AI agent manually and paste it.",
@@ -363,7 +363,7 @@ describe("TaskLauncher", () => {
 
     const printedPrompt = promptPrintedBy(log);
     expect(printedPrompt).toContain("You are working on task T0045.");
-    expect(printedPrompt).toContain("Stop after the approved commit");
+    expect(printedPrompt).toContain("launched in `manual` mode");
     expect(error).toHaveBeenCalledWith(
       "Could not copy the prompt to the clipboard: clipboard unavailable",
     );

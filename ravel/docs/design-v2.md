@@ -257,10 +257,11 @@ Without workmux, Ravel prints the task branch and registered path.
 Ravel derives the workmux branch name from the task filename without `.md`,
 for example `T0001-example-task`.
 
-The generated prompt names the task ID and repository-relative task file and
-instructs the agent to follow `AGENTS.md` and the task. It contains the only
-v2-specific lifecycle instructions. Ravel generates a workmux variant for
-automatic launch and a manual variant for clipboard fallback.
+The generated prompt names the task ID, repository-relative task file, and
+launch mode. It instructs the agent to follow `AGENTS.md`, the task, and
+`ravel/docs/ravel-conventions.md`, including the workflow matching that launch
+mode. The conventions document is the single source of lifecycle instructions;
+the prompt provides only task-specific runtime context.
 
 ### Before approval
 
@@ -300,22 +301,19 @@ The separate `workmux rebase` step is intentional. Calling only
 conflict-free branch before the rebased result has been verified.
 
 The prompt does not name an agent command, main branch, or worktree path.
-Those are workmux concerns. These instructions are compatible with the
-Ravel conventions, which require the review gate and one local commit. The
-task prompt identifies `workmux rebase` and
-`workmux merge --rebase --notification` as narrow, task-specific exceptions to
-the general convention that agents do not merge branches or delete worktrees.
-They are authorized only after explicit `LGTM`; direct push, merge, and
-worktree deletion commands remain prohibited. This keeps the existing Ravel
-conventions reusable without weakening their default safety rules.
+Those are workmux concerns. The conventions identify `workmux rebase` and
+`workmux merge --rebase --notification` as narrow exceptions to the general
+rule that agents do not merge branches or delete worktrees. They are authorized
+only after explicit `LGTM`; direct push, merge, and worktree deletion commands
+remain prohibited.
 
 ### After explicit `LGTM` in manual mode
 
-The manual prompt also requires status `done` and exactly one local commit,
-but then stops and reports the completed branch to the user. It prohibits
-rebase, merge, push, worktree removal, and branch deletion because workmux is
-unavailable or its launch failed. The user remains responsible for integration
-and cleanup in this fallback workflow.
+The manual workflow in the conventions also requires status `done` and exactly
+one local commit, but then stops and reports the completed branch to the user.
+It prohibits rebase, merge, push, worktree removal, and branch deletion because
+workmux is unavailable or its launch failed. The user remains responsible for
+integration and cleanup in this fallback workflow.
 
 ## Notification Boundary
 
@@ -418,12 +416,13 @@ configured one as shown.
 The README contains the complete migration procedure:
 
 ```txt
-Remove the .ravel/ directory.
+1. Remove the .ravel/ directory.
+2. Replace ravel/docs/ravel-conventions.md with the current packaged template.
+3. Run ravel init to refresh the Ravel section in AGENTS.md.
 ```
 
-Nothing else is required. The committed `ravel/` task and documentation
-folders remain valid, and the Ravel section already installed in `AGENTS.md`
-is reused. V2 neither reads nor recreates `.ravel/`.
+Existing task and design documents under `ravel/` remain valid. V2 neither
+reads nor recreates `.ravel/`.
 
 ## Removed v1 Surface
 
@@ -460,7 +459,7 @@ Expected runtime dependencies remain `clipboardy`, `gray-matter`, and `zod`.
 3. Add the doctor check model, individual check modules, and mandatory-only
    preflight.
 4. Add project discovery and the `fzf` task picker.
-5. Update prompt generation for the workmux-owned lifecycle.
+5. Put the task lifecycle in the conventions and generate task-and-mode prompts.
 6. Delegate launch/resume to workmux and add manual prompt fallback.
 7. Rewrite the README and update package metadata for `2.0.0`.
 8. Verify the public workflows and audit the package for obsolete v1 code.
@@ -501,16 +500,17 @@ or an installed coding agent.
   primary or worktree file.
 - Make cancellation and blocked selection mutation-free.
 
-### Prompt and workmux
+### Prompt, conventions, and workmux
 
-- Include the task identity, initial `in-progress` transition, verification,
-  `review` gate, readiness report, explicit `LGTM` gate, exact one-commit
-  format, separate workmux rebase and verification, and workmux merge handoff
-  in the prompt.
-- Verify neither prompt variant contains Ravel-owned notification commands or
-  selects behavior from terminal state.
-- Exclude agent and branch names and prohibit direct push, merge, and cleanup
-  commands while allowing only the named workmux lifecycle after approval.
+- Include the initial `in-progress` transition, verification, `review` gate,
+  readiness report, explicit `LGTM` gate, exact one-commit format, separate
+  workmux rebase and verification, workmux merge handoff, and manual fallback
+  restrictions in the conventions template.
+- Include only the task identity, repository-relative task path, launch mode,
+  and conventions reference in the generated prompt.
+- Verify neither prompt variant contains lifecycle policy, Ravel-owned
+  notification commands, agent names, branch names, or terminal-derived
+  behavior.
 - Invoke `workmux add <branch> --open-if-exists --prompt <prompt>` as argument
   arrays without shell interpolation when the Git, tmux, and workmux
   availability checks pass, without also copying the prompt.
@@ -523,12 +523,13 @@ or an installed coding agent.
 
 - `ravel`, `ravel init`, and `ravel doctor` are the complete documented v2
   workflow.
-- README migration guidance says only to remove `.ravel/`.
+- README migration guidance removes `.ravel/`, refreshes the conventions, and
+  reruns `ravel init` for the generated `AGENTS.md` section.
 - README and design documentation distinguish agent-owned turn-completion
   notifications from workmux's retained native successful-merge notification.
-- The conventions template and generated `AGENTS.md` section remain reusable;
-  the workmux task prompt supplies the narrow post-approval lifecycle
-  exceptions.
+- The conventions template and generated `AGENTS.md` section define the shared
+  and launch-specific workflow; the task prompt only selects the applicable
+  mode.
 - Ravel reads Git's registered worktree metadata but contains no direct
   worktree lifecycle implementation; workmux owns those operations.
 - A clean build succeeds, `npm run lint` passes, and `npm test` passes in full.

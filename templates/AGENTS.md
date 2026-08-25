@@ -2,7 +2,8 @@
 
 ## Ravel Conventions
 
-Before creating or modifying any tasks or design docs, read `ravel/docs/ravel-conventions.md` and follow those conventions strictly.
+Before implementing a task or creating or modifying any task or design doc,
+read `ravel/docs/ravel-conventions.md` and follow those conventions strictly.
 
 ### Creating Tasks
 

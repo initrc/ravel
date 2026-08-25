@@ -54,6 +54,12 @@ only the `## Ravel Conventions` section of `AGENTS.md`. Re-running the command
 is safe: it preserves an existing conventions file and all unrelated
 `AGENTS.md` content.
 
+When upgrading an existing Ravel project, replace
+`ravel/docs/ravel-conventions.md` with the current
+`bin/templates/ravel-conventions.md` from the installed Ravel package. Ravel
+preserves the project copy during `ravel init`, and current versions rely on it
+for the implementation, review, and integration workflows.
+
 Create tasks by asking your AI agent, for example:
 
 ```txt
@@ -62,8 +68,9 @@ Create a Ravel task for each of the following:
 - Fix pagination's off-by-one error
 ```
 
-The generated `AGENTS.md` instructions point the agent to the task format and
-naming rules. Tasks are Markdown files with YAML frontmatter:
+The generated `AGENTS.md` instructions require the agent to read the Ravel
+conventions before creating or implementing tasks. Tasks are Markdown files
+with YAML frontmatter:
 
 ```md
 ---
@@ -175,8 +182,10 @@ without generating a duplicate implementation prompt.
 
 ## Review and integration workflow
 
-The generated prompt is the source of the task-specific lifecycle
-instructions. Before approval, the agent:
+`ravel/docs/ravel-conventions.md` is the source of the task lifecycle. The
+generated prompt supplies only the selected task file and whether the launch
+uses the `workmux` or `manual` workflow. Before approval, the conventions tell
+the agent to:
 
 1. Moves a new task to `in-progress` before implementation.
 2. Implements only that task and runs its required verification.
@@ -184,7 +193,7 @@ instructions. Before approval, the agent:
 4. Reports that the task is ready for review and stops without committing.
 5. Waits for the user to say `LGTM` explicitly.
 
-After explicit `LGTM`, the workmux prompt tells the agent to:
+After explicit `LGTM`, the `workmux` conventions tell the agent to:
 
 1. Set the task to `done` and create exactly one task commit.
 2. Run `workmux rebase`, resolve any conflicts, and verify the rebased result.
@@ -196,11 +205,10 @@ After explicit `LGTM`, the workmux prompt tells the agent to:
 The separate rebase prevents a conflict-free merge from integrating and
 cleaning up the worktree before the rebased result has been tested. Workmux
 resolves the saved base and merge target, performs the merge, sends its native
-successful-merge notification, and cleans up its resources. The generated
-prompt explicitly marks these two post-`LGTM` workmux commands as narrow,
-task-specific exceptions to the general Ravel prohibitions on agent-owned
-merge and deletion. Direct Git push, merge, rebase, worktree removal, and
-branch deletion remain prohibited.
+successful-merge notification, and cleans up its resources. The conventions
+explicitly mark these two post-`LGTM` workmux commands as narrow exceptions to
+the general Ravel prohibitions on agent-owned merge and deletion. Direct Git
+push, merge, rebase, worktree removal, and branch deletion remain prohibited.
 
 ## Manual prompt fallback
 
@@ -213,8 +221,8 @@ fallback.
 Open an AI agent in the checkout where you want to work and paste the prompt.
 Ravel does not create a branch, change directories, update task status, or
 start an agent in manual mode. The same review gate applies, but after `LGTM`
-the manual prompt stops after the single approved commit and leaves rebase,
-merge, and cleanup to you.
+the manual workflow in the conventions stops after the single approved commit
+and leaves rebase, merge, and cleanup to you.
 
 For a `merge-ready` task without workmux, Ravel prints its registered branch
 and worktree path so you can resume integration manually; it does not copy a
@@ -232,8 +240,10 @@ new prompt.
 
 ## Migrating from v1
 
-Remove the `.ravel/` directory.
+1. Remove the `.ravel/` directory.
+2. Replace `ravel/docs/ravel-conventions.md` with the current
+   `bin/templates/ravel-conventions.md` from the installed Ravel package.
+3. Run `ravel init` to refresh the Ravel section in `AGENTS.md`.
 
-That is the complete migration. Committed files under `ravel/` remain valid,
-and an existing Ravel `## Ravel Conventions` section in `AGENTS.md` remains
-valid. Ravel v2 neither reads nor recreates `.ravel/`.
+Existing task and design documents under `ravel/` remain valid. Ravel v2
+neither reads nor recreates `.ravel/`.
