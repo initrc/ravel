@@ -1,6 +1,6 @@
 {
   "name": "@initrc/ravel",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Orchestrator for interactive AI coding",
   "type": "module",
   "bin": {
